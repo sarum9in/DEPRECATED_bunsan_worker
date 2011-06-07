@@ -1,0 +1,53 @@
+
+interface
+{
+	type xmlrpc
+	config
+	{
+		server
+		{
+			port 2104
+		}
+	}
+}
+
+pool
+{
+	type zeromq
+	config
+	{
+		iothreads 1
+		size 2
+		stop_check_interval 10000 ; microseconds
+		queue
+		{
+			port 8967
+		}
+		hub
+		{
+			#include "hub.rc"
+		}
+		worker
+		{
+			port 9876
+			hub
+			{
+				#include "hub.rc"
+			}
+			repository
+			{
+				uri_substitution repository
+				pm
+				{
+					#include "pm.rc"
+				}
+			}
+		}
+	}
+}
+
+resources
+{
+	#include "resources.rc"
+}
+

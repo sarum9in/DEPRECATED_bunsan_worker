@@ -1,0 +1,6 @@
+type xmlrpc_proxy
+config
+{
+	server_url "http://localhost:1924/RPC2"
+}
+
