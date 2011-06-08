@@ -6,6 +6,8 @@
 
 #include <boost/lexical_cast.hpp>
 
+#include <unistd.h>
+
 #include "repository.hpp"
 #include "tempfile.hpp"
 #include "execute.hpp"
@@ -87,6 +89,12 @@ void bunsan::worker::pools::zeromq::add_task(const std::string &callback, const 
 		push.send(task[i], i+1==task.size()?0:ZMQ_SNDMORE);
 }
 
+class reportable_error: public std::runtime_error// TODO is it needed?
+{
+public:
+	reportable_error(const std::string &callback);
+};
+
 void bunsan::worker::pools::zeromq::queue_func()
 {
 	try
@@ -95,41 +103,54 @@ void bunsan::worker::pools::zeromq::queue_func()
 		zmq::socket_t rep(*context, ZMQ_REP);
 		pull.bind(("tcp://*:"+boost::lexical_cast<std::string>(queue_port)).c_str());
 		rep.bind(("tcp://*:"+boost::lexical_cast<std::string>(worker_port)).c_str());
-		zmq::pollitem_t item[] =
-		{
-			{rep, 0, ZMQ_POLLIN, 0}
-		};
 		while (true)
 		{
-			if (to_stop.load())
-				break;
-			zmq::poll(item, 1, stop_check_interval);
-			if (to_stop.load())
-				break;
-			if (item[0].revents & ZMQ_POLLIN)
+			zmq::pollitem_t rep_item[] =
 			{
-				DLOG(attached to new worker);
-				int more;
-				size_t more_size = sizeof(more);
-				do
-				{
-					zmq::message_t message;
-					rep.recv(&message);
-					rep.getsockopt(ZMQ_RCVMORE, &more, &more_size);
-					
-				} while (more);
-				DLOG(waiting for task);
-				do
-				{
-					zmq::message_t message;
-					DLOG(receiving task...);
-					pull.recv(&message);
-					pull.getsockopt(ZMQ_RCVMORE, &more, &more_size);
-					rep.send(message, more?ZMQ_SNDMORE:0);
-				}
-				while (more);
-				DLOG(task was submitted);
+				{rep, 0, ZMQ_POLLIN, 0}
+			};
+			do
+			{
+				DLOG(tick);
+				if (to_stop.load())
+					break;
+				zmq::poll(rep_item, 1, stop_check_interval);
+				if (to_stop.load())
+					break;
+			} while (!(rep_item[0].revents & ZMQ_POLLIN));
+			DLOG(attached to new worker);
+			int more;
+			size_t more_size = sizeof(more);
+			do
+			{
+				zmq::message_t message;
+				rep.recv(&message);
+				rep.getsockopt(ZMQ_RCVMORE, &more, &more_size);
+			} while (more);
+			DLOG(waiting for task);
+			zmq::pollitem_t pull_item[] =
+			{
+				{pull, 0, ZMQ_POLLIN, 0}
+			};
+			do
+			{
+				DLOG(tick);
+				if (to_stop.load())
+					break;
+				zmq::poll(pull_item, 1, stop_check_interval);
+				if (to_stop.load())
+					break;
+			} while (!(pull_item[0].revents & ZMQ_POLLIN));
+			do
+			{
+				zmq::message_t message;
+				pull.recv(&message);
+				DLOG(receiving task...);
+				pull.getsockopt(ZMQ_RCVMORE, &more, &more_size);
+				rep.send(message, more?ZMQ_SNDMORE:0);
 			}
+			while (more);
+			DLOG(task was submitted);// TODO inform callback
 		}
 	}
 	catch (std::exception &e)
@@ -149,30 +170,31 @@ void bunsan::worker::pools::zeromq::queue_func()
 	}
 }
 
-#include <unistd.h>
 void bunsan::worker::pools::zeromq::worker_func()
 {
-	zmq::socket_t req(*context, ZMQ_REQ);
-	req.connect(("tcp://localhost:"+boost::lexical_cast<std::string>(worker_port)).c_str());
-	zmq::pollitem_t item[] =
-	{
-		{req, 0, ZMQ_POLLIN, 0}
-	};
 	while (true)
 	{
 		try
 		{
-			if (to_stop.load())
-				break;
+			zmq::socket_t req(*context, ZMQ_REQ);
+			req.connect(("tcp://localhost:"+boost::lexical_cast<std::string>(worker_port)).c_str());
+			zmq::pollitem_t item[] =
+			{
+				{req, 0, ZMQ_POLLIN, 0}
+			};
 			{
 				zmq::message_t message(0);
 				req.send(message);
 			}
-			if (to_stop.load())
-				break;
-			zmq::poll(item, 1, stop_check_interval);
-			if (to_stop.load())
-				break;
+			do
+			{
+				DLOG(tick);
+				if (to_stop.load())
+					break;
+				zmq::poll(item, 1, stop_check_interval);
+				if (to_stop.load())
+					break;
+			} while (!(item[0].revents & ZMQ_POLLIN));
 			int more;
 			size_t more_size = sizeof(more);
 			std::vector<std::string> task;
@@ -190,35 +212,47 @@ void bunsan::worker::pools::zeromq::worker_func()
 			for (const std::string &i: task)
 				SLOG('\t'<<i);
 			DLOG(============);
-			if (task.size()<2)
-				throw std::runtime_error("task incorrect format: too small");
-			DLOG(extracting task);
-			std::string callback = task[0];
-			std::string package = task[1];
-			std::vector<std::string> args(task.size()-2);
-			std::copy(task.begin()+2, task.end(), args.begin());
-			DLOG("preparing package manager");
-			boost::property_tree::ptree repo_config = repository_config.get_child("pm");
-			boost::optional<std::string> uri_substitution = repository_config.get_optional<std::string>("uri_substitution");
-			if (uri_substitution)
-			{
-#warning TODO
-				// XXX hub substitution here, now static
-				throw std::runtime_error("uri substitution was not implemened");
-			}
-			bunsan::pm::repository repo(repo_config);
-			bunsan::tempfile_ptr tmpdir = bunsan::tempfile::in_dir(worker_tempdir);
-			bunsan::reset_dir(tmpdir->path());
-			repo.extract(package, tmpdir->path());
-			bunsan::process_ptr process = bunsan::async_execute(tmpdir->path(), args, false);
-			process->wait();
-			DLOG(completed);
+			do_task(task);
 		}
 		catch (std::exception &e)
 		{
 			SLOG("Oops! \""<<e.what()<<"\"");
 		}
 	}
+}
+
+void bunsan::worker::pools::zeromq::do_task(const std::vector<std::string> &task)
+{
+	// TODO is it a separate function?
+	// TODO callback may be informed here
+	if (task.size()<2)
+		throw std::runtime_error("task incorrect format: too small, FIXME this should not happen");
+	DLOG(extracting task);
+	std::string callback = task[0];
+	std::string package = task[1];
+	std::vector<std::string> args(task.size()-2);
+	std::copy(task.begin()+2, task.end(), args.begin());
+	DLOG(extracted);// TODO inform callback
+#warning inform callback on error
+	DLOG(preparing package manager);
+	boost::property_tree::ptree repo_config = repository_config.get_child("pm");
+	boost::optional<std::string> uri_substitution = repository_config.get_optional<std::string>("uri_substitution");
+	if (uri_substitution)
+	{
+#warning TODO
+		// XXX hub substitution here, now static
+		throw std::runtime_error("uri substitution was not implemened");
+	}
+	bunsan::pm::repository repo(repo_config);
+	bunsan::tempfile_ptr tmpdir = bunsan::tempfile::in_dir(worker_tempdir);
+	bunsan::reset_dir(tmpdir->path());
+	repo.extract(package, tmpdir->path());
+	bunsan::process_ptr process = bunsan::async_execute(tmpdir->path(), args, false);// TODO inform callback
+	process->wait();// TODO timeout
+	if (process->return_code())
+		SLOG("process return code is not null: \""<<process->return_code()<<"\"");
+	else
+		DLOG(completed);// TODO inform callback
 }
 
 void bunsan::worker::pools::zeromq::join()

@@ -18,7 +18,7 @@ pool
 	{
 		iothreads 1
 		size 2
-		stop_check_interval 10000 ; microseconds
+		stop_check_interval 1000 ; microseconds?? milliseconds!
 		queue
 		{
 			port 8967

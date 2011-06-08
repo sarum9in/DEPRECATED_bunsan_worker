@@ -33,6 +33,7 @@ namespace bunsan{namespace worker{namespace pools
 		void worker_func();
 		void check_running();
 		void check_dirs();
+		void do_task(const std::vector<std::string> &task);
 		std::shared_ptr<zmq::context_t> context;
 		bunsan::dcs::hub_ptr hub;
 		std::thread queue;
