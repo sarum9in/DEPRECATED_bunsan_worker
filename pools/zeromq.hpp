@@ -32,6 +32,7 @@ namespace bunsan{namespace worker{namespace pools
 		void queue_func();
 		void worker_func();
 		void check_running();
+		void check_dirs();
 		std::shared_ptr<zmq::context_t> context;
 		bunsan::dcs::hub_ptr hub;
 		std::thread queue;
@@ -41,6 +42,8 @@ namespace bunsan{namespace worker{namespace pools
 		const unsigned worker_port;
 		const unsigned queue_port;
 		const unsigned long stop_check_interval;
+		const std::string worker_tempdir;
+		const boost::property_tree::ptree repository_config;
 		static bunsan::runner reg;
 	};
 }}}

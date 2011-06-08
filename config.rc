@@ -27,27 +27,23 @@ pool
 		{
 			#include "hub.rc"
 		}
+		resources
+		{
+			#include "resources.rc"
+		}
 		worker
 		{
+			tmp "/tmp/bunsan_worker"
 			port 9876
-			hub
+		}
+		repository
+		{
+			;uri_substitution repository
+			pm
 			{
-				#include "hub.rc"
-			}
-			repository
-			{
-				uri_substitution repository
-				pm
-				{
-					#include "pm.rc"
-				}
+				#include "pm.rc"
 			}
 		}
 	}
-}
-
-resources
-{
-	#include "resources.rc"
 }
 

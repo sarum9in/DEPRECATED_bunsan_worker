@@ -1,18 +1,24 @@
-; c
-"c"		"gcc"
-"gcc"		""
-; c++
-"c++"		"g++"
-"g++"		""
-; pascal
-"pascal"	"fpc"
-"fpc"		""
-; python
-"python2"	""
-"python3"	""
-; other
-"perl"		""
-"sh"		""
-"bash"		""
-"zsh"		""
+
+lang
+{
+	; c
+	"c"		"gcc"
+	"gcc"		""
+	; c++
+	"c++"		"g++"
+	"g++"		""
+	; java
+	"java"		""
+	; pascal
+	"pascal"	"fpc"
+	"fpc"		""
+	; python
+	"python2"	""
+	"python3"	""
+	; other
+	"perl"		""
+	"sh"		""
+	"bash"		""
+	"zsh"		""
+}
 

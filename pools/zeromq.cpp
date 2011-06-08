@@ -1,8 +1,14 @@
 #include "zeromq.hpp"
 
+#include <algorithm>
+
 #include <cstring>
 
 #include <boost/lexical_cast.hpp>
+
+#include "repository.hpp"
+#include "tempfile.hpp"
+#include "execute.hpp"
 
 // factory
 
@@ -21,16 +27,21 @@ bunsan::worker::pools::zeromq::zeromq(const boost::property_tree::ptree &config)
 	worker_port(config.get<unsigned>("worker.port")),
 	queue_port(config.get<unsigned>("queue.port")),
 	stop_check_interval(config.get<unsigned long>("stop_check_interval")),
-	workers(config.get<size_t>("size"))
+	workers(config.get<size_t>("size")),
+	repository_config(config.get_child("repository")),
+	worker_tempdir(config.get<std::string>("worker.tmp"))
 {
 	DLOG(creating zeromq pool instance);
 	SLOG("attempt to create hub of "<<config.get<std::string>("hub.type")<<" type");
 	hub = bunsan::dcs::hub::instance(config.get<std::string>("hub.type"), config.get_child("hub.config")); // you should use proxy hub
+	if (!hub)
+		throw std::runtime_error("hub was not created");
 	hub->start();
 	to_stop.store(false);
 	context.reset(new zmq::context_t(iothreads));
 	try
 	{
+		check_dirs();
 		queue = std::thread(&bunsan::worker::pools::zeromq::queue_func, this);
 		for (std::shared_ptr<std::thread> &w: workers)
 		{
@@ -44,6 +55,11 @@ bunsan::worker::pools::zeromq::zeromq(const boost::property_tree::ptree &config)
 			queue.join();
 		throw;
 	}
+}
+
+void bunsan::worker::pools::zeromq::check_dirs()
+{
+	bunsan::reset_dir(worker_tempdir);
 }
 
 void bunsan::worker::pools::zeromq::check_running()
@@ -123,7 +139,8 @@ void bunsan::worker::pools::zeromq::queue_func()
 	try
 	{
 		for (std::shared_ptr<std::thread> &t: workers)
-			t->join();
+			if (t->joinable())
+				t->join();
 		context.reset();
 	}
 	catch (std::exception &e)
@@ -143,36 +160,64 @@ void bunsan::worker::pools::zeromq::worker_func()
 	};
 	while (true)
 	{
-		if (to_stop.load())
-			break;
+		try
 		{
-			zmq::message_t message(0);
-			req.send(message);
+			if (to_stop.load())
+				break;
+			{
+				zmq::message_t message(0);
+				req.send(message);
+			}
+			if (to_stop.load())
+				break;
+			zmq::poll(item, 1, stop_check_interval);
+			if (to_stop.load())
+				break;
+			int more;
+			size_t more_size = sizeof(more);
+			std::vector<std::string> task;
+			do
+			{
+				zmq::message_t message;
+				req.recv(&message);
+				req.getsockopt(ZMQ_RCVMORE, &more, &more_size);
+				std::string msg(message.size(), '\0');
+				for (size_t i = 0; i<message.size(); ++i)
+					msg[i] = static_cast<char *>(message.data())[i];
+				task.push_back(std::move(msg));
+			} while (more);
+			DLOG(attempt to do);
+			for (const std::string &i: task)
+				SLOG('\t'<<i);
+			DLOG(============);
+			if (task.size()<2)
+				throw std::runtime_error("task incorrect format: too small");
+			DLOG(extracting task);
+			std::string callback = task[0];
+			std::string package = task[1];
+			std::vector<std::string> args(task.size()-2);
+			std::copy(task.begin()+2, task.end(), args.begin());
+			DLOG("preparing package manager");
+			boost::property_tree::ptree repo_config = repository_config.get_child("pm");
+			boost::optional<std::string> uri_substitution = repository_config.get_optional<std::string>("uri_substitution");
+			if (uri_substitution)
+			{
+#warning TODO
+				// XXX hub substitution here, now static
+				throw std::runtime_error("uri substitution was not implemened");
+			}
+			bunsan::pm::repository repo(repo_config);
+			bunsan::tempfile_ptr tmpdir = bunsan::tempfile::in_dir(worker_tempdir);
+			bunsan::reset_dir(tmpdir->path());
+			repo.extract(package, tmpdir->path());
+			bunsan::process_ptr process = bunsan::async_execute(tmpdir->path(), args, false);
+			process->wait();
+			DLOG(completed);
 		}
-		if (to_stop.load())
-			break;
-		zmq::poll(item, 1, stop_check_interval);
-		if (to_stop.load())
-			break;
-		int more;
-		size_t more_size = sizeof(more);
-		std::vector<std::string> task;
-		do
+		catch (std::exception &e)
 		{
-			zmq::message_t message;
-			req.recv(&message);
-			req.getsockopt(ZMQ_RCVMORE, &more, &more_size);
-			std::string msg(message.size(), '\0');
-			for (size_t i = 0; i<message.size(); ++i)
-				msg[i] = static_cast<char *>(message.data())[i];
-			task.push_back(std::move(msg));
-		} while (more);
-		DLOG(attempt to do);
-		for (const std::string &i: task)
-			SLOG('\t'<<i);
-		DLOG(============);
-		sleep(3);
-		DLOG(completed);
+			SLOG("Oops! \""<<e.what()<<"\"");
+		}
 	}
 }
 
