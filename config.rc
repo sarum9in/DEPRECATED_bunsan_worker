@@ -27,6 +27,7 @@ pool
 		{
 			#include "hub.rc"
 		}
+		uri "http://localhost:2104/RPC2"
 		resources
 		{
 			#include "resources.rc"
@@ -39,6 +40,7 @@ pool
 		repository
 		{
 			;uri_substitution repository
+			;resource_name bunsan_istu_repo
 			pm
 			{
 				#include "pm.rc"

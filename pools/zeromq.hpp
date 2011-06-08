@@ -6,9 +6,6 @@
 #include <atomic>
 #include <vector>
 
-#include <boost/thread/shared_mutex.hpp>
-#include <boost/thread/locks.hpp>
-
 #include "zmq.hpp"
 
 #include "executor.hpp"
@@ -27,24 +24,29 @@ namespace bunsan{namespace worker{namespace pools
 		virtual void stop();
 		virtual ~zeromq();
 	private:
-		//typedef boost::unique_lock<boost::shared_mutex> unique_guard;
-		//typedef boost::shared_lock<boost::shared_mutex> shared_guard;
 		void queue_func();
 		void worker_func();
 		void check_running();
 		void check_dirs();
 		void do_task(const std::vector<std::string> &task);
+		void add_to_hub();
+		void register_worker();
+		void hub_update();
+		void unregister_worker();
+		void remove_from_hub();
 		std::shared_ptr<zmq::context_t> context;
 		bunsan::dcs::hub_ptr hub;
 		std::thread queue;
 		std::vector<std::shared_ptr<std::thread>> workers;
-		std::atomic_bool to_stop;
+		std::atomic<bool> to_stop;
+		std::atomic<size_t> capacity;
 		const unsigned iothreads;
 		const unsigned worker_port;
 		const unsigned queue_port;
 		const unsigned long stop_check_interval;
 		const std::string worker_tempdir;
 		const boost::property_tree::ptree repository_config;
+		const std::string uri;
 		static bunsan::runner reg;
 	};
 }}}

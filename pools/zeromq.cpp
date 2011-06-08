@@ -31,7 +31,8 @@ bunsan::worker::pools::zeromq::zeromq(const boost::property_tree::ptree &config)
 	stop_check_interval(config.get<unsigned long>("stop_check_interval")),
 	workers(config.get<size_t>("size")),
 	repository_config(config.get_child("repository")),
-	worker_tempdir(config.get<std::string>("worker.tmp"))
+	worker_tempdir(config.get<std::string>("worker.tmp")),
+	uri(config.get<std::string>("uri"))
 {
 	DLOG(creating zeromq pool instance);
 	SLOG("attempt to create hub of "<<config.get<std::string>("hub.type")<<" type");
@@ -40,6 +41,8 @@ bunsan::worker::pools::zeromq::zeromq(const boost::property_tree::ptree &config)
 		throw std::runtime_error("hub was not created");
 	hub->start();
 	to_stop.store(false);
+	capacity.store(0);
+	add_to_hub();
 	context.reset(new zmq::context_t(iothreads));
 	try
 	{
@@ -159,6 +162,14 @@ void bunsan::worker::pools::zeromq::queue_func()
 	}
 	try
 	{
+		remove_from_hub();
+	}
+	catch (std::exception &e)
+	{
+		SLOG("Oops! "<<e.what());
+	}
+	try
+	{
 		for (std::shared_ptr<std::thread> &t: workers)
 			if (t->joinable())
 				t->join();
@@ -186,15 +197,24 @@ void bunsan::worker::pools::zeromq::worker_func()
 				zmq::message_t message(0);
 				req.send(message);
 			}
-			do
+			try
 			{
-				DLOG(tick);
-				if (to_stop.load())
-					break;
-				zmq::poll(item, 1, stop_check_interval);
-				if (to_stop.load())
-					break;
-			} while (!(item[0].revents & ZMQ_POLLIN));
+				register_worker();
+				do
+				{
+					DLOG(tick);
+					if (to_stop.load())
+						break;
+					zmq::poll(item, 1, stop_check_interval);
+					if (to_stop.load())
+						break;
+				} while (!(item[0].revents & ZMQ_POLLIN));
+			} catch (std::exception &e)
+			{
+				unregister_worker();
+				throw;
+			}
+			unregister_worker();
 			int more;
 			size_t more_size = sizeof(more);
 			std::vector<std::string> task;
@@ -211,7 +231,7 @@ void bunsan::worker::pools::zeromq::worker_func()
 			DLOG(attempt to do);
 			for (const std::string &i: task)
 				SLOG('\t'<<i);
-			DLOG(============);
+			DLOG(======================================);
 			do_task(task);
 		}
 		catch (std::exception &e)
@@ -223,10 +243,9 @@ void bunsan::worker::pools::zeromq::worker_func()
 
 void bunsan::worker::pools::zeromq::do_task(const std::vector<std::string> &task)
 {
-	// TODO is it a separate function?
 	// TODO callback may be informed here
 	if (task.size()<2)
-		throw std::runtime_error("task incorrect format: too small, FIXME this should not happen");
+		throw std::runtime_error("task incorrect format: too small, FIXME: this should not happen");
 	DLOG(extracting task);
 	std::string callback = task[0];
 	std::string package = task[1];
@@ -239,9 +258,8 @@ void bunsan::worker::pools::zeromq::do_task(const std::vector<std::string> &task
 	boost::optional<std::string> uri_substitution = repository_config.get_optional<std::string>("uri_substitution");
 	if (uri_substitution)
 	{
-#warning TODO
-		// XXX hub substitution here, now static
-		throw std::runtime_error("uri substitution was not implemened");
+		std::string repo_uri = hub->get_resource(repo_config.get<std::string>("resource_name"));
+		repo_config.put(uri_substitution.get(), repo_uri);
 	}
 	bunsan::pm::repository repo(repo_config);
 	bunsan::tempfile_ptr tmpdir = bunsan::tempfile::in_dir(worker_tempdir);
@@ -253,6 +271,33 @@ void bunsan::worker::pools::zeromq::do_task(const std::vector<std::string> &task
 		SLOG("process return code is not null: \""<<process->return_code()<<"\"");
 	else
 		DLOG(completed);// TODO inform callback
+}
+
+void bunsan::worker::pools::zeromq::add_to_hub()
+{
+#warning TODO
+}
+
+void bunsan::worker::pools::zeromq::hub_update()
+{
+#warning TODO
+}
+
+void bunsan::worker::pools::zeromq::register_worker()
+{
+	++capacity;
+	hub_update();
+}
+
+void bunsan::worker::pools::zeromq::unregister_worker()
+{
+	--capacity;
+	hub_update();
+}
+
+void bunsan::worker::pools::zeromq::remove_from_hub()
+{
+#warning TODO
 }
 
 void bunsan::worker::pools::zeromq::join()
