@@ -1,6 +1,8 @@
 #include "zeromq.hpp"
 
 #include <algorithm>
+#include <vector>
+#include <sstream>
 
 #include <cstring>
 
@@ -37,7 +39,9 @@ bunsan::worker::pools::zeromq::zeromq(const boost::property_tree::ptree &config)
 	workers(config.get<size_t>("size")),
 	repository_config(config.get_child("repository")),
 	worker_tempdir(config.get<std::string>("worker.tmp")),
-	uri(config.get<std::string>("uri"))
+	uri(config.get<std::string>("uri")),
+	machine(config.get<std::string>("machine")),
+	resources(config.get_child("resources"))
 {
 	DLOG(creating zeromq pool instance);
 	SLOG("attempt to create hub of "<<config.get<std::string>("hub.type")<<" type");
@@ -72,10 +76,18 @@ void bunsan::worker::pools::zeromq::check_dirs()
 	bunsan::reset_dir(worker_tempdir);
 }
 
+class interrupted_error: public std::runtime_error
+{
+	static const char message[];
+public:
+	interrupted_error(): std::runtime_error(::interrupted_error::message){}
+};
+const char interrupted_error::message[] = "execution was interrupted";
+
 void bunsan::worker::pools::zeromq::check_running()
 {
 	if (to_stop.load())
-		throw std::runtime_error("pool execution has already completed");
+		throw interrupted_error();
 }
 
 void bunsan::worker::pools::zeromq::add_task(const std::string &callback, const std::string &package, const std::vector<std::string> &args)
@@ -120,11 +132,9 @@ void bunsan::worker::pools::zeromq::queue_func()
 			do
 			{
 				DLOG(tick);
-				if (to_stop.load())
-					break;
+				check_running();
 				zmq::poll(rep_item, 1, stop_check_interval);
-				if (to_stop.load())
-					break;
+				check_running();
 			} while (!(rep_item[0].revents & ZMQ_POLLIN));
 			DLOG(attached to new worker);
 			int more;
@@ -143,11 +153,9 @@ void bunsan::worker::pools::zeromq::queue_func()
 			do
 			{
 				DLOG(tick);
-				if (to_stop.load())
-					break;
+				check_running();
 				zmq::poll(pull_item, 1, stop_check_interval);
-				if (to_stop.load())
-					break;
+				check_running();
 			} while (!(pull_item[0].revents & ZMQ_POLLIN));
 			do
 			{
@@ -196,7 +204,7 @@ void bunsan::worker::pools::zeromq::queue_func()
 
 void bunsan::worker::pools::zeromq::worker_func()
 {
-	while (true)
+	while (!to_stop.load())
 	{
 		try
 		{
@@ -216,13 +224,16 @@ void bunsan::worker::pools::zeromq::worker_func()
 				do
 				{
 					DLOG(tick);
-					if (to_stop.load())
-						break;
+					check_running();
 					zmq::poll(item, 1, stop_check_interval);
-					if (to_stop.load())
-						break;
+					check_running();
 				} while (!(item[0].revents & ZMQ_POLLIN));
-			} catch (std::exception &e)
+			}
+			catch (interrupted_error &e)
+			{
+				throw;
+			}
+			catch (std::exception &e)
 			{
 				unregister_worker();
 				throw;
@@ -246,6 +257,10 @@ void bunsan::worker::pools::zeromq::worker_func()
 				SLOG('\t'<<i);
 			DLOG(======================================);
 			do_task(task);
+		}
+		catch (interrupted_error &e)
+		{
+			DLOG(interrupted);
 		}
 		catch (std::exception &e)
 		{
@@ -274,26 +289,45 @@ void bunsan::worker::pools::zeromq::do_task(const std::vector<std::string> &task
 		std::string repo_uri = hub->select_resource(repo_config.get<std::string>("resource_name"));
 		repo_config.put(uri_substitution.get(), repo_uri);
 	}
+	DLOG(creating repository);
 	bunsan::pm::repository repo(repo_config);
 	bunsan::tempfile_ptr tmpdir = bunsan::tempfile::in_dir(worker_tempdir);
 	bunsan::reset_dir(tmpdir->path());
 	repo.extract(package, tmpdir->path());
+	DLOG(preparing async execute);
 	bunsan::process_ptr process = bunsan::async_execute(tmpdir->path(), args, false);// TODO inform callback
-	process->wait();// TODO timeout
+	DLOG(starting child wait loop);
+	while (!process->completed())
+	{
+		check_running();
+		process->wait(boost::posix_time::milliseconds(stop_check_interval));
+	}
 	if (process->return_code())
 		SLOG("process return code is not null: \""<<process->return_code()<<"\"");
 	else
 		DLOG(completed);// TODO inform callback
 }
 
+void add_to_hub(const std::string &prefix, const boost::property_tree::ptree &resources, const std::string &machine, const std::string &uri, bunsan::dcs::hub_ptr hub)
+{
+	for (const auto &value: resources)
+	{
+		if (value.second.empty())
+			hub->add_resource(machine, prefix+value.first, uri);
+		else
+			add_to_hub(prefix+value.first, value.second, machine, uri, hub);
+	}
+}
+
 void bunsan::worker::pools::zeromq::add_to_hub()
 {
-#warning TODO
+	hub->add_machine(machine, 0);
+	::add_to_hub("", resources, machine, uri, hub);
 }
 
 void bunsan::worker::pools::zeromq::hub_update()
 {
-#warning TODO
+	hub->set_capacity(machine, capacity.load());
 }
 
 void bunsan::worker::pools::zeromq::register_worker()
@@ -310,7 +344,7 @@ void bunsan::worker::pools::zeromq::unregister_worker()
 
 void bunsan::worker::pools::zeromq::remove_from_hub()
 {
-#warning TODO
+	hub->remove_machine(machine);
 }
 
 void bunsan::worker::pools::zeromq::join()

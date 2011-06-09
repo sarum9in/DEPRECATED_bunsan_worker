@@ -46,6 +46,8 @@ namespace bunsan{namespace worker{namespace pools
 		const std::string worker_tempdir;
 		const boost::property_tree::ptree repository_config;
 		const std::string uri;
+		const std::string machine;
+		const boost::property_tree::ptree resources;
 		static bool factory_reg_hook;
 	};
 }}}
