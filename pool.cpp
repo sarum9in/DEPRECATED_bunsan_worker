@@ -3,7 +3,7 @@
 // factory
 std::shared_ptr<std::map<std::string, std::function<bunsan::worker::pool_ptr(const boost::property_tree::ptree &)>>> bunsan::worker::pool::factory;
 
-void bunsan::worker::pool::register_new(const std::string &type, const std::function<pool_ptr(const boost::property_tree::ptree &)> f)
+bool bunsan::worker::pool::register_new(const std::string &type, const std::function<pool_ptr(const boost::property_tree::ptree &)> f)
 {
 	if (!factory)
 		factory.reset(new std::map<std::string, std::function<pool_ptr(const boost::property_tree::ptree &)>>);
@@ -11,6 +11,7 @@ void bunsan::worker::pool::register_new(const std::string &type, const std::func
 		(*factory)[type] = f;
 	else
 		throw std::runtime_error("factory \""+type+"\" was already registered");
+	return true;
 }
 
 bunsan::worker::pool_ptr bunsan::worker::pool::instance(const std::string &type, const boost::property_tree::ptree &config)

@@ -25,7 +25,7 @@ namespace bunsan{namespace worker
 		typedef std::shared_ptr<pool_interface> pool_interface_ptr;
 		static pool_interface_ptr instance(const std::string &type, const boost::property_tree::ptree &config, bunsan::worker::pool_ptr pool_);
 	protected:
-		static void register_new(const std::string &type, const std::function<pool_interface_ptr(const boost::property_tree::ptree &, bunsan::worker::pool_ptr)> f);
+		static bool register_new(const std::string &type, const std::function<pool_interface_ptr(const boost::property_tree::ptree &, bunsan::worker::pool_ptr)> f);
 	private:
 		static std::shared_ptr<std::map<std::string, std::function<pool_interface_ptr(const boost::property_tree::ptree &, bunsan::worker::pool_ptr)>>> factory;
 	};

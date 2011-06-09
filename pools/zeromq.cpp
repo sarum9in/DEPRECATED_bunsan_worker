@@ -20,7 +20,12 @@ bunsan::worker::pool_ptr instance(const boost::property_tree::ptree &config)
 	return tmp;
 }
 
-bunsan::runner bunsan::worker::pools::zeromq::reg(bunsan::worker::pool::register_new, "zeromq", ::instance);
+bool bunsan::worker::pools::zeromq::factory_reg_hook = bunsan::worker::pool::register_new("zeromq",
+	[](const boost::property_tree::ptree &config)
+	{
+		bunsan::worker::pool_ptr tmp(new bunsan::worker::pools::zeromq(config));
+		return tmp;
+	});
 
 // virtual class
 
@@ -170,6 +175,14 @@ void bunsan::worker::pools::zeromq::queue_func()
 	}
 	try
 	{
+		hub->stop();
+	}
+	catch (std::exception &e)
+	{
+		SLOG("Oops! "<<e.what());
+	}
+	try
+	{
 		for (std::shared_ptr<std::thread> &t: workers)
 			if (t->joinable())
 				t->join();
@@ -258,7 +271,7 @@ void bunsan::worker::pools::zeromq::do_task(const std::vector<std::string> &task
 	boost::optional<std::string> uri_substitution = repository_config.get_optional<std::string>("uri_substitution");
 	if (uri_substitution)
 	{
-		std::string repo_uri = hub->get_resource(repo_config.get<std::string>("resource_name"));
+		std::string repo_uri = hub->select_resource(repo_config.get<std::string>("resource_name"));
 		repo_config.put(uri_substitution.get(), repo_uri);
 	}
 	bunsan::pm::repository repo(repo_config);

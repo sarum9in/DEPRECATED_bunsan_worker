@@ -10,7 +10,6 @@
 
 #include "executor.hpp"
 #include "hub.hpp"
-#include "runner.hpp"
 #include "pool.hpp"
 
 namespace bunsan{namespace worker{namespace pools
@@ -47,7 +46,7 @@ namespace bunsan{namespace worker{namespace pools
 		const std::string worker_tempdir;
 		const boost::property_tree::ptree repository_config;
 		const std::string uri;
-		static bunsan::runner reg;
+		static bool factory_reg_hook;
 	};
 }}}
 

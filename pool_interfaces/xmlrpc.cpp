@@ -11,13 +11,12 @@
 
 // factory
 
-bunsan::runner bunsan::worker::pool_interfaces::xmlrpc::reg(bunsan::worker::pool_interface::register_new, "xmlrpc", bunsan::worker::pool_interfaces::xmlrpc::instance);
-
-bunsan::worker::pool_interface_ptr bunsan::worker::pool_interfaces::xmlrpc::instance(const boost::property_tree::ptree &config, pool_ptr pool__)
-{
-	pool_interface_ptr tmp(new xmlrpc(config, pool__));
-	return tmp;
-}
+bool bunsan::worker::pool_interfaces::xmlrpc::factory_reg_hook = bunsan::worker::pool_interface::register_new("xmlrpc",
+	[](const boost::property_tree::ptree &config, bunsan::worker::pool_ptr pool__)
+	{
+		bunsan::worker::pool_interface_ptr tmp(new bunsan::worker::pool_interfaces::xmlrpc(config, pool__));
+		return tmp;
+	});
 
 // virtual class
 

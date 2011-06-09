@@ -3,7 +3,6 @@
 
 #include "pool.hpp"
 #include "pool_interface.hpp"
-#include "runner.hpp"
 #include "xmlrpc_service.hpp"
 
 namespace bunsan{namespace worker{namespace pool_interfaces
@@ -21,8 +20,7 @@ namespace bunsan{namespace worker{namespace pool_interfaces
 		bunsan::xmlrpc_service::registry_ptr registry;
 		unsigned port;
 		bunsan::worker::pool_ptr pool_;
-		// factory
-		static bunsan::runner reg;
+		static bool factory_reg_hook;
 	};
 }}}
 
