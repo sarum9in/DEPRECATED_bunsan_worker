@@ -14,22 +14,12 @@
 #include "tempfile.hpp"
 #include "execute.hpp"
 
-// factory
-
-bunsan::worker::pool_ptr instance(const boost::property_tree::ptree &config)
-{
-	bunsan::worker::pool_ptr tmp(new bunsan::worker::pools::zeromq(config));
-	return tmp;
-}
-
 bool bunsan::worker::pools::zeromq::factory_reg_hook = bunsan::worker::pool::register_new("zeromq",
 	[](const boost::property_tree::ptree &config)
 	{
 		bunsan::worker::pool_ptr tmp(new bunsan::worker::pools::zeromq(config));
 		return tmp;
 	});
-
-// virtual class
 
 bunsan::worker::pools::zeromq::zeromq(const boost::property_tree::ptree &config):
 	iothreads(config.get<int>("iothreads")),
