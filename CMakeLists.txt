@@ -58,7 +58,8 @@ include_directories(. ${BUNSAN_COMMON_DIR} ${BUNSAN_DCS_DIR} ${BUNSAN_PM_DIR})
 aux_source_directory(. srcs)
 aux_source_directory(pools pools_srcs)
 aux_source_directory(pool_interfaces pool_interfaces_srcs)
+aux_source_directory(callbacks callbacks_srcs)
 
-add_executable(${PROJECT_NAME} ${srcs} ${pools_srcs} ${pool_interfaces_srcs})
+add_executable(${PROJECT_NAME} ${srcs} ${pools_srcs} ${pool_interfaces_srcs} ${callbacks_srcs})
 target_link_libraries(${PROJECT_NAME} bunsan_common bunsan_dcs bunsan_pm ${Boost_LIBRARIES} ${xmlrpc_link_lib} zmq)
 
