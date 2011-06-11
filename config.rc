@@ -1,13 +1,29 @@
 
 interface
 {
-	type xmlrpc
+	type complex_interface
 	config
 	{
-		server
+		interface
 		{
-			port 2104
+			type xmlrpc
+			config
+			{
+				server
+				{
+					port 2104
+				}
+			}
 		}
+		;interface
+		;{
+		;	type zeromq
+		;	config
+		;	{
+		;		port 8967
+		;		; empty
+		;	}
+		;}
 	}
 }
 

@@ -90,10 +90,22 @@ void bunsan::worker::pools::zeromq::check_running()
 		throw interrupted_error();
 }
 
+/// autoclosing socket
+class socket: public zmq::socket_t
+{
+public:
+	socket(zmq::context_t &context, int type): zmq::socket_t(context, type){}
+	~socket()
+	{
+		int zero = 0;
+		setsockopt(ZMQ_LINGER, &zero, sizeof(zero));
+	};
+};
+
 void bunsan::worker::pools::zeromq::add_task(const std::string &callback, const std::string &package, const std::vector<std::string> &args)
 {
 	check_running();
-	zmq::socket_t push(*context, ZMQ_PUSH);
+	socket push(*context, ZMQ_PUSH);
 	push.connect(("tcp://localhost:"+boost::lexical_cast<std::string>(queue_port)).c_str());
 	std::vector<zmq::message_t> task(args.size()+2);
 	task[0].rebuild(callback.size());
@@ -119,8 +131,8 @@ void bunsan::worker::pools::zeromq::queue_func()
 {
 	try
 	{
-		zmq::socket_t pull(*context, ZMQ_PULL);
-		zmq::socket_t rep(*context, ZMQ_REP);
+		socket pull(*context, ZMQ_PULL);
+		socket rep(*context, ZMQ_REP);
 		pull.bind(("tcp://*:"+boost::lexical_cast<std::string>(queue_port)).c_str());
 		rep.bind(("tcp://*:"+boost::lexical_cast<std::string>(worker_port)).c_str());
 		while (true)
@@ -183,6 +195,7 @@ void bunsan::worker::pools::zeromq::queue_func()
 	}
 	try
 	{
+		DLOG(stopping hub);
 		hub->stop();
 	}
 	catch (std::exception &e)
@@ -191,10 +204,14 @@ void bunsan::worker::pools::zeromq::queue_func()
 	}
 	try
 	{
+		DLOG(joining worker threads);
 		for (std::shared_ptr<std::thread> &t: workers)
 			if (t->joinable())
 				t->join();
+		DLOG(all worker threads was completed);
+		DLOG(closing context);
 		context.reset();
+		DLOG(context was closed);
 	}
 	catch (std::exception &e)
 	{
@@ -208,7 +225,8 @@ void bunsan::worker::pools::zeromq::worker_func()
 	{
 		try
 		{
-			zmq::socket_t req(*context, ZMQ_REQ);
+			DLOG(begin worker iteration);
+			socket req(*context, ZMQ_REQ);
 			req.connect(("tcp://localhost:"+boost::lexical_cast<std::string>(worker_port)).c_str());
 			zmq::pollitem_t item[] =
 			{
@@ -266,7 +284,10 @@ void bunsan::worker::pools::zeromq::worker_func()
 		{
 			SLOG("Oops! \""<<e.what()<<"\"");
 		}
+		DLOG(end worker iteration);
+		SLOG("to_stop=="<<to_stop.load());
 	}
+	DLOG(worker loop was exited);
 }
 
 void bunsan::worker::pools::zeromq::do_task(const std::vector<std::string> &task)
@@ -321,6 +342,7 @@ void add_to_hub(const std::string &prefix, const boost::property_tree::ptree &re
 
 void bunsan::worker::pools::zeromq::add_to_hub()
 {
+	DLOG(inserting instance to hub);
 	hub->add_machine(machine, 0);
 	::add_to_hub("", resources, machine, uri, hub);
 }
@@ -344,6 +366,7 @@ void bunsan::worker::pools::zeromq::unregister_worker()
 
 void bunsan::worker::pools::zeromq::remove_from_hub()
 {
+	DLOG(removing instance from hub);
 	hub->remove_machine(machine);
 }
 
