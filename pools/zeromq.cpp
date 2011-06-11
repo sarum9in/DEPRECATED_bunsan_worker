@@ -1,7 +1,5 @@
 #include "zeromq.hpp"
 
-#include <algorithm>
-#include <vector>
 #include <sstream>
 
 #include <cstring>
@@ -13,6 +11,8 @@
 #include "repository.hpp"
 #include "tempfile.hpp"
 #include "execute.hpp"
+
+#include "zmq_helpers.hpp"
 
 bool bunsan::worker::pools::zeromq::factory_reg_hook = bunsan::worker::pool::register_new("zeromq",
 	[](const boost::property_tree::ptree &config)
@@ -79,18 +79,6 @@ void bunsan::worker::pools::zeromq::check_running()
 	if (to_stop.load())
 		throw interrupted_error();
 }
-
-/// autoclosing socket
-class socket: public zmq::socket_t
-{
-public:
-	socket(zmq::context_t &context, int type): zmq::socket_t(context, type){}
-	~socket()
-	{
-		int zero = 0;
-		setsockopt(ZMQ_LINGER, &zero, sizeof(zero));
-	};
-};
 
 void bunsan::worker::pools::zeromq::add_task(const std::string &callback, const std::string &package, const std::vector<std::string> &args)
 {
