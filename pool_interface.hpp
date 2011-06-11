@@ -10,6 +10,7 @@
 #include <boost/noncopyable.hpp>
 
 #include "service.hpp"
+#include "factory.hpp"
 
 #include "pool.hpp"
 
@@ -23,11 +24,17 @@ namespace bunsan{namespace worker
 		virtual inline ~pool_interface(){}
 		// factory
 		typedef std::shared_ptr<pool_interface> pool_interface_ptr;
-		static pool_interface_ptr instance(const std::string &type, const boost::property_tree::ptree &config, bunsan::worker::pool_ptr pool_);
+		static inline pool_interface_ptr instance(const std::string &type, const boost::property_tree::ptree &config, bunsan::worker::pool_ptr pool_)
+		{
+			return bunsan::factory::instance(factories, type, std::cref(config), std::ref(pool_));
+		}
 	protected:
-		static bool register_new(const std::string &type, const std::function<pool_interface_ptr(const boost::property_tree::ptree &, bunsan::worker::pool_ptr)> f);
+		static inline bool register_new(const std::string &type, const std::function<pool_interface_ptr(const boost::property_tree::ptree &, bunsan::worker::pool_ptr)> f)
+		{
+			return bunsan::factory::register_new(factories, type, f);
+		}
 	private:
-		static std::shared_ptr<std::map<std::string, std::function<pool_interface_ptr(const boost::property_tree::ptree &, bunsan::worker::pool_ptr)>>> factory;
+		static std::map<std::string, std::function<pool_interface_ptr(const boost::property_tree::ptree &, bunsan::worker::pool_ptr)>> *factories;
 	};
 	typedef pool_interface::pool_interface_ptr pool_interface_ptr;
 }}
