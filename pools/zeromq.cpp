@@ -82,8 +82,9 @@ void bunsan::worker::pools::zeromq::check_running()
 
 void bunsan::worker::pools::zeromq::add_task(const std::string &callback, const std::string &package, const std::vector<std::string> &args)
 {
+	DLOG(registrating new task);
 	check_running();
-	socket push(*context, ZMQ_PUSH);
+	zmq::socket_t push(*context, ZMQ_PUSH);
 	push.connect(("tcp://localhost:"+boost::lexical_cast<std::string>(queue_port)).c_str());
 	std::vector<zmq::message_t> task(args.size()+2);
 	task[0].rebuild(callback.size());
@@ -91,12 +92,10 @@ void bunsan::worker::pools::zeromq::add_task(const std::string &callback, const 
 	task[1].rebuild(package.size());
 	memcpy(task[1].data(), package.c_str(), package.size());
 	for (size_t i = 0; i<args.size(); ++i)
-	{
-		task[i+2].rebuild(args[i].size());
-		memcpy(task[i+2].data(), args[i].c_str(), args[i].size());
-	}
+		string2message(args[i], task[i+2]);
 	for (size_t i = 0; i<task.size(); ++i)
 		push.send(task[i], i+1==task.size()?0:ZMQ_SNDMORE);
+	DLOG(new task was registered);// TODO inform callback here
 }
 
 class reportable_error: public std::runtime_error// TODO is it needed?
@@ -199,20 +198,30 @@ void bunsan::worker::pools::zeromq::queue_func()
 
 void bunsan::worker::pools::zeromq::worker_func()
 {
+	std::unique_ptr<socket> req;
+	try
+	{
+		DLOG(creating ZMQ_REQ socket);
+		req.reset(new socket(*context, ZMQ_REQ));
+		req->connect(("tcp://localhost:"+boost::lexical_cast<std::string>(worker_port)).c_str());
+	}
+	catch (std::exception &e)
+	{
+		SLOG("Oops! \""<<e.what()<<"\"");
+		return;
+	}
 	while (!to_stop.load())
 	{
 		try
 		{
 			DLOG(begin worker iteration);
-			socket req(*context, ZMQ_REQ);
-			req.connect(("tcp://localhost:"+boost::lexical_cast<std::string>(worker_port)).c_str());
 			zmq::pollitem_t item[] =
 			{
-				{req, 0, ZMQ_POLLIN, 0}
+				{*req, 0, ZMQ_POLLIN, 0}
 			};
 			{
 				zmq::message_t message(0);
-				req.send(message);
+				req->send(message);
 			}
 			try
 			{
@@ -241,11 +250,10 @@ void bunsan::worker::pools::zeromq::worker_func()
 			do
 			{
 				zmq::message_t message;
-				req.recv(&message);
-				req.getsockopt(ZMQ_RCVMORE, &more, &more_size);
+				req->recv(&message);
+				req->getsockopt(ZMQ_RCVMORE, &more, &more_size);
 				std::string msg(message.size(), '\0');
-				for (size_t i = 0; i<message.size(); ++i)
-					msg[i] = static_cast<char *>(message.data())[i];
+				message2string(message, msg);
 				task.push_back(std::move(msg));
 			} while (more);
 			DLOG(attempt to do);
@@ -266,6 +274,15 @@ void bunsan::worker::pools::zeromq::worker_func()
 		SLOG("to_stop=="<<to_stop.load());
 	}
 	DLOG(worker loop was exited);
+	try
+	{
+		DLOG(removing ZMQ_REQ socket);
+		req.reset();
+	}
+	catch (std::exception &e)
+	{
+		SLOG("Oops! \""<<e.what()<<"\"");
+	}
 }
 
 void bunsan::worker::pools::zeromq::do_task(const std::vector<std::string> &task)
