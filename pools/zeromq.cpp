@@ -11,6 +11,7 @@
 #include "repository.hpp"
 #include "tempfile.hpp"
 #include "execute.hpp"
+#include "callback.hpp"
 
 #include "zmq_helpers.hpp"
 
@@ -80,22 +81,24 @@ void bunsan::worker::pools::zeromq::check_running()
 		throw interrupted_error();
 }
 
-void bunsan::worker::pools::zeromq::add_task(const std::string &callback, const std::string &package, const std::vector<std::string> &args)
+void bunsan::worker::pools::zeromq::add_task(const std::string &callback_type, const std::string &callback_uri, const std::vector<std::string> &callback_args, const std::string &package, const std::vector<std::string> &args, const boost::optional<std::vector<unsigned char>> &stdin_file)
 {
 	DLOG(registrating new task);
 	check_running();
 	zmq::socket_t push(*context, ZMQ_PUSH);
 	push.connect(("tcp://localhost:"+boost::lexical_cast<std::string>(queue_port)).c_str());
-	std::vector<zmq::message_t> task(args.size()+2);
-	task[0].rebuild(callback.size());
-	memcpy(task[0].data(), callback.c_str(), callback.size());
-	task[1].rebuild(package.size());
-	memcpy(task[1].data(), package.c_str(), package.size());
-	for (size_t i = 0; i<args.size(); ++i)
-		string2message(args[i], task[i+2]);
-	for (size_t i = 0; i<task.size(); ++i)
-		push.send(task[i], i+1==task.size()?0:ZMQ_SNDMORE);
-	DLOG(new task was registered);// TODO inform callback here
+	bunsan::worker::callback_ptr cb = bunsan::worker::callback::instance(callback_type, callback_uri, callback_args);
+	if (cb->call(bunsan::worker::callback::status::received)==bunsan::worker::callback::action::abort)
+		return;
+	send_string(callback_type, push, ZMQ_SNDMORE);
+	send_string(callback_uri, push, ZMQ_SNDMORE);
+	send_strings(callback_args, push, ZMQ_SNDMORE);
+	send_string(package, push, ZMQ_SNDMORE);
+	send_strings(args, push, stdin_file?ZMQ_SNDMORE:0);
+	if (stdin_file)
+		send_binary(stdin_file.get(), push, 0);
+	(void) cb->call(bunsan::worker::callback::status::registered);
+	DLOG(new task was registered);
 }
 
 class reportable_error: public std::runtime_error// TODO is it needed?

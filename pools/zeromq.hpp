@@ -18,7 +18,7 @@ namespace bunsan{namespace worker{namespace pools
 	{
 	public:
 		zeromq(const boost::property_tree::ptree &config);
-		virtual void add_task(const std::string &callback, const std::string &package, const std::vector<std::string> &args);
+		virtual void add_task(const std::string &callback_type, const std::string &callback_uri, const std::vector<std::string> &callback_args, const std::string &package, const std::vector<std::string> &args, const boost::optional<std::vector<unsigned char>> &stdin_file);
 		virtual void join();
 		virtual void stop();
 		virtual ~zeromq();

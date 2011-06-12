@@ -6,6 +6,7 @@
 #include <string>
 #include <map>
 
+#include <boost/optional.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/noncopyable.hpp>
 
@@ -18,7 +19,7 @@ namespace bunsan{namespace worker
 	{
 	public:
 		// virtual class
-		virtual void add_task(const std::string &callback, const std::string &package, const std::vector<std::string> &args)=0;
+		virtual void add_task(const std::string &callback_type, const std::string &callback_uri, const std::vector<std::string> &callback_args, const std::string &package, const std::vector<std::string> &args, const boost::optional<std::vector<unsigned char>> &stdin_file)=0;
 		virtual inline ~pool(){}
 		// factory
 		typedef std::shared_ptr<pool> pool_ptr;
