@@ -16,12 +16,13 @@ namespace bunsan{namespace worker
 	public:
 		enum class status
 		{
-			received
+			received,
+			registered
 		};
 		enum class action
 		{
 			nop,
-			interrupt,
+			abort,
 			bad
 		};
 		// virtual class
@@ -31,7 +32,8 @@ namespace bunsan{namespace worker
 		 * \param status_type represents type of message, may be used as enum: it is for program parse
 		 * \param status_message human readable message
 		 */
-		virtual action operator()(status status_type, const std::string &status_message)=0;
+		virtual action call(status status_type, const std::string &status_message)=0;
+		virtual action call(status status_type);
 		// factory
 		typedef std::shared_ptr<callback> callback_ptr;
 		static inline callback_ptr instance(const std::string &type, const std::string &uri, const std::vector<std::string> &args)

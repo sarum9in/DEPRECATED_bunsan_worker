@@ -9,7 +9,7 @@ namespace bunsan{namespace worker{namespace callbacks
 	{
 	public:
 		xmlrpc(const std::string &uri_, const std::string &method_, const std::vector<std::string> &args_);
-		virtual action operator()(status status_type, const std::string &status_message);
+		virtual action call(status status_type, const std::string &status_message);
 	private:
 		const std::string uri;
 		const std::string method;

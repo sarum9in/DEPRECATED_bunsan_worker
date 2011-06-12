@@ -13,7 +13,7 @@ bool bunsan::worker::callbacks::xmlrpc::factory_reg_hook = bunsan::worker::callb
 
 bunsan::worker::callbacks::xmlrpc::xmlrpc(const std::string &uri_, const std::string &method_, const std::vector<std::string> &args_): uri(uri_), method(method_), args(args_){}
 
-bunsan::worker::callback::action bunsan::worker::callbacks::xmlrpc::operator()(status status_type, const std::string &status_message)
+bunsan::worker::callback::action bunsan::worker::callbacks::xmlrpc::call(status status_type, const std::string &status_message)
 {
 	xmlrpc_c::clientSimple proxy;
 	xmlrpc_c::value result;
