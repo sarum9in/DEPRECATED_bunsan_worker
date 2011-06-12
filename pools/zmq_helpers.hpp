@@ -7,7 +7,7 @@
 
 #include <zmq.hpp>
 
-namespace bunsan{namespace worker{namespace pools
+namespace bunsan{namespace worker{namespace pools{namespace helpers
 {
 	/// autoclosing socket
 	class socket: public zmq::socket_t
@@ -16,22 +16,46 @@ namespace bunsan{namespace worker{namespace pools
 		socket(zmq::context_t &context, int type);
 		~socket();
 	};
+	// generic
+	template <typename T>
+	void encode(const T &c, zmq::message_t &msg);
+	template <typename T>
+	void decode(/*const */zmq::message_t &msg, T &c);
+	template <typename T>
+	bool send(const T &c, zmq::socket_t &sock, int opt)
+	{
+		zmq::message_t msg;
+		encode(c, msg);
+		return sock.send(msg, opt);
+	}
+	template <typename T>
+	bool recv(zmq::socket_t &sock, T &c, int opt)
+	{
+		zmq::message_t msg;
+		if (sock.recv(&msg, opt))
+		{
+			decode(msg, c);
+			return true;
+		}
+		else
+			return false;
+	}
 	// string
-	void string2message(const std::string &s, zmq::message_t &msg);
-	void message2string(/*const */zmq::message_t &msg, std::string &s);
-	bool send_string(const std::string &s, zmq::socket_t &sock, int opt);
-	bool recv_string(std::string &s, zmq::socket_t &sock, int opt);
+	template <>
+	void encode(const std::string &c, zmq::message_t &msg);
+	template <>
+	void decode(/*const */zmq::message_t &msg, std::string &c);
 	// strings
-	void strings2message(const std::vector<std::string> &s, zmq::message_t &msg);
-	void message2strings(/*const */zmq::message_t &msg, std::vector<std::string> &s);
-	bool send_strings(const std::vector<std::string> &s, zmq::socket_t &sock, int opt);
-	bool recv_strings(std::vector<std::string> &s, zmq::socket_t &sock, int opt);
+	template <>
+	void encode(const std::vector<std::string> &c, zmq::message_t &msg);
+	template <>
+	void decode(/*const */zmq::message_t &msg, std::vector<std::string> &c);
 	// binary
-	void binary2message(const std::vector<unsigned char> &b, zmq::message_t &msg);
-	void message2binary(/*const */zmq::message_t &msg, std::vector<unsigned char> &b);
-	bool send_binary(const std::vector<unsigned char> &s, zmq::socket_t &sock, int opt);
-	bool recv_binary(std::vector<unsigned char> &s, zmq::socket_t &sock, int opt);
-}}}
+	template <>
+	void encode(const std::vector<unsigned char> &c, zmq::message_t &msg);
+	template <>
+	void decode(/*const */zmq::message_t &msg, std::vector<unsigned char> &c);
+}}}}
 
 #endif //ZMQ_HELPERS_HPP
 

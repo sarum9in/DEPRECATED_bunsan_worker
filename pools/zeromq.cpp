@@ -86,18 +86,33 @@ void bunsan::worker::pools::zeromq::add_task(const std::string &callback_type, c
 	DLOG(registrating new task);
 	check_running();
 	zmq::socket_t push(*context, ZMQ_PUSH);
+#warning deadlock possible, use ZMQ_LINGER?
 	push.connect(("tcp://localhost:"+boost::lexical_cast<std::string>(queue_port)).c_str());
 	bunsan::worker::callback_ptr cb = bunsan::worker::callback::instance(callback_type, callback_uri, callback_args);
-	if (cb->call(bunsan::worker::callback::status::received)==bunsan::worker::callback::action::abort)
-		return;
-	send_string(callback_type, push, ZMQ_SNDMORE);
-	send_string(callback_uri, push, ZMQ_SNDMORE);
-	send_strings(callback_args, push, ZMQ_SNDMORE);
-	send_string(package, push, ZMQ_SNDMORE);
-	send_strings(args, push, stdin_file?ZMQ_SNDMORE:0);
+	if (cb)
+	{
+		DLOG(informing callback);
+		if (cb->call(bunsan::worker::callback::status::received)==bunsan::worker::callback::action::abort)
+			return;
+		DLOG(informed);
+	}
+	else
+		DLOG(bad callback type);
+	helpers::send(callback_type, push, ZMQ_SNDMORE);
+	helpers::send(callback_uri, push, ZMQ_SNDMORE);
+	helpers::send(callback_args, push, ZMQ_SNDMORE);
+	helpers::send(package, push, ZMQ_SNDMORE);
+	helpers::send(args, push, stdin_file?ZMQ_SNDMORE:0);
 	if (stdin_file)
-		send_binary(stdin_file.get(), push, 0);
-	(void) cb->call(bunsan::worker::callback::status::registered);
+		helpers::send(stdin_file.get(), push, 0);
+	if (cb)
+	{
+		DLOG(informing callback);
+		(void) cb->call(bunsan::worker::callback::status::registered);
+		DLOG(informed);
+	}
+	else
+		DLOG(bad callback type);
 	DLOG(new task was registered);
 }
 
@@ -111,8 +126,8 @@ void bunsan::worker::pools::zeromq::queue_func()
 {
 	try
 	{
-		socket pull(*context, ZMQ_PULL);
-		socket rep(*context, ZMQ_REP);
+		helpers::socket pull(*context, ZMQ_PULL);
+		helpers::socket rep(*context, ZMQ_REP);
 		pull.bind(("tcp://*:"+boost::lexical_cast<std::string>(queue_port)).c_str());
 		rep.bind(("tcp://*:"+boost::lexical_cast<std::string>(worker_port)).c_str());
 		while (true)
@@ -201,11 +216,11 @@ void bunsan::worker::pools::zeromq::queue_func()
 
 void bunsan::worker::pools::zeromq::worker_func()
 {
-	std::unique_ptr<socket> req;
+	std::unique_ptr<helpers::socket> req;
 	try
 	{
 		DLOG(creating ZMQ_REQ socket);
-		req.reset(new socket(*context, ZMQ_REQ));
+		req.reset(new helpers::socket(*context, ZMQ_REQ));
 		req->connect(("tcp://localhost:"+boost::lexical_cast<std::string>(worker_port)).c_str());
 	}
 	catch (std::exception &e)
@@ -256,14 +271,14 @@ void bunsan::worker::pools::zeromq::worker_func()
 				req->recv(&message);
 				req->getsockopt(ZMQ_RCVMORE, &more, &more_size);
 				std::string msg(message.size(), '\0');
-				message2string(message, msg);
+				helpers::decode(message, msg);
 				task.push_back(std::move(msg));
 			} while (more);
 			DLOG(attempt to do);
 			for (const std::string &i: task)
 				SLOG('\t'<<i);
 			DLOG(======================================);
-			do_task(task);
+			//do_task(task);
 		}
 		catch (interrupted_error &e)
 		{
