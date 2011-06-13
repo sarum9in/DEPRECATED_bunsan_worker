@@ -81,6 +81,34 @@ void bunsan::worker::pools::zeromq::check_running()
 		throw interrupted_error();
 }
 
+bunsan::worker::callback::action bunsan::worker::pools::zeromq::inform(bunsan::worker::callback_ptr cb, bunsan::worker::callback::status st)
+{
+	if (cb)
+	{
+		DLOG(informing callback);
+		return cb->call(st);
+	}
+	else
+	{
+		DLOG(bad callback);
+		return bunsan::worker::callback::action::bad;
+	}
+}
+
+bunsan::worker::callback::action bunsan::worker::pools::zeromq::inform(bunsan::worker::callback_ptr cb, bunsan::worker::callback::status st, std::string msg)
+{
+	if (cb)
+	{
+		DLOG(informing callback);
+		return cb->call(st, msg);
+	}
+	else
+	{
+		DLOG(bad callback);
+		return bunsan::worker::callback::action::bad;
+	}
+}
+
 void bunsan::worker::pools::zeromq::add_task(const std::string &callback_type, const std::string &callback_uri, const std::vector<std::string> &callback_args, const std::string &package, const std::vector<std::string> &args, const boost::optional<std::vector<unsigned char>> &stdin_file)
 {
 	DLOG(registrating new task);
@@ -88,16 +116,13 @@ void bunsan::worker::pools::zeromq::add_task(const std::string &callback_type, c
 	zmq::socket_t push(*context, ZMQ_PUSH);
 #warning deadlock possible, use ZMQ_LINGER?
 	push.connect(("tcp://localhost:"+boost::lexical_cast<std::string>(queue_port)).c_str());
+	SLOG("creating callback instance with type=\""<<callback_type<<"\" and uri=\""<<callback_uri<<"\"");
 	bunsan::worker::callback_ptr cb = bunsan::worker::callback::instance(callback_type, callback_uri, callback_args);
-	if (cb)
+	if (bunsan::worker::callback::action::abort==inform(cb, bunsan::worker::callback::status::received))
 	{
-		DLOG(informing callback);
-		if (cb->call(bunsan::worker::callback::status::received)==bunsan::worker::callback::action::abort)
-			return;
-		DLOG(informed);
+		inform(cb, bunsan::worker::callback::status::aborted);
+		return;
 	}
-	else
-		DLOG(bad callback type);
 	helpers::send(callback_type, push, ZMQ_SNDMORE);
 	helpers::send(callback_uri, push, ZMQ_SNDMORE);
 	helpers::send(callback_args, push, ZMQ_SNDMORE);
@@ -262,23 +287,21 @@ void bunsan::worker::pools::zeromq::worker_func()
 				throw;
 			}
 			unregister_worker();
-			int more;
-			size_t more_size = sizeof(more);
-			std::vector<std::string> task;
-			do
-			{
-				zmq::message_t message;
-				req->recv(&message);
-				req->getsockopt(ZMQ_RCVMORE, &more, &more_size);
-				std::string msg(message.size(), '\0');
-				helpers::decode(message, msg);
-				task.push_back(std::move(msg));
-			} while (more);
-			DLOG(attempt to do);
-			for (const std::string &i: task)
-				SLOG('\t'<<i);
-			DLOG(======================================);
-			//do_task(task);
+			std::string callback_type, callback_uri;
+			std::vector<std::string> callback_args;
+			std::string package;
+			std::vector<std::string> args;
+			boost::optional<std::vector<unsigned char>> stdin_file;
+			int more = 1;
+			DLOG(receiving a task);
+			helpers::recv_more(*req, callback_type, more);
+			helpers::recv_more(*req, callback_uri, more);
+			helpers::recv_more(*req, callback_args, more);
+			helpers::recv_more(*req, package, more);
+			helpers::recv_more(*req, args, more);
+			helpers::recv_more(*req, stdin_file, more);
+			DLOG(task was received);
+			do_task(callback_type, callback_uri, callback_args, package, args, stdin_file);
 		}
 		catch (interrupted_error &e)
 		{
@@ -302,44 +325,75 @@ void bunsan::worker::pools::zeromq::worker_func()
 		SLOG("Oops! \""<<e.what()<<"\"");
 	}
 }
-
-void bunsan::worker::pools::zeromq::do_task(const std::vector<std::string> &task)
+#include <unistd.h>
+void bunsan::worker::pools::zeromq::do_task(const std::string &callback_type, const std::string &callback_uri, const std::vector<std::string> &callback_args, const std::string &package, const std::vector<std::string> &args, const boost::optional<std::vector<unsigned char>> &stdin_file)
 {
-	// TODO callback may be informed here
-	if (task.size()<2)
-		throw std::runtime_error("task incorrect format: too small, FIXME: this should not happen");
-	DLOG(extracting task);
-	std::string callback = task[0];
-	std::string package = task[1];
-	std::vector<std::string> args(task.size()-2);
-	std::copy(task.begin()+2, task.end(), args.begin());
-	DLOG(extracted);// TODO inform callback
-#warning inform callback on error
-	DLOG(preparing package manager);
-	boost::property_tree::ptree repo_config = repository_config.get_child("pm");
-	boost::optional<std::string> uri_substitution = repository_config.get_optional<std::string>("uri_substitution");
-	if (uri_substitution)
+	bunsan::worker::callback_ptr cb = bunsan::worker::callback::instance(callback_type, callback_uri, callback_args);
+	try
 	{
-		std::string repo_uri = hub->select_resource(repo_config.get<std::string>("resource_name"));
-		repo_config.put(uri_substitution.get(), repo_uri);
+		if (bunsan::worker::callback::action::abort==inform(cb, bunsan::worker::callback::status::preparing))
+		{
+			inform(cb, bunsan::worker::callback::status::aborted);
+			return;
+		}
+		DLOG(preparing package manager);
+		if (bunsan::worker::callback::action::abort==inform(cb, bunsan::worker::callback::status::extracting))
+		{
+			inform(cb, bunsan::worker::callback::status::aborted);
+			return;
+		}
+		boost::property_tree::ptree repo_config = repository_config.get_child("pm");
+		boost::optional<std::string> uri_substitution = repository_config.get_optional<std::string>("uri_substitution");
+		if (uri_substitution)
+		{
+			std::string repo_uri = hub->select_resource(repo_config.get<std::string>("resource_name"));
+			repo_config.put(uri_substitution.get(), repo_uri);
+		}
+		DLOG(creating repository);
+		bunsan::pm::repository repo(repo_config);
+		bunsan::tempfile_ptr tmpdir = bunsan::tempfile::in_dir(worker_tempdir);
+		bunsan::reset_dir(tmpdir->path());
+		repo.extract(package, tmpdir->path());
+		if (bunsan::worker::callback::action::abort==inform(cb, bunsan::worker::callback::status::preparing_executing))
+		{
+			inform(cb, bunsan::worker::callback::status::aborted);
+			return;
+		}
+		DLOG(preparing async execute);
+		bunsan::process_ptr process = bunsan::async_execute(tmpdir->path(), tmpdir->path()/args.at(0), args, false);
+		SLOG("exec in "<<tmpdir->path()<<" file "<<tmpdir->path()/args.at(0));
+		DLOG(starting child wait loop);
+#warning bad implementation, workaround only, TODO
+		/*do //XXX
+		{
+			if (bunsan::worker::callback::action::abort==inform(cb, bunsan::worker::callback::status::executing))
+			{
+				inform(cb, bunsan::worker::callback::status::aborted);
+				return;
+			}
+			check_running();
+		} while (!process->wait(std::chrono::milliseconds(stop_check_interval)));
+		DLOG(child wait loop was completed);*/
+		if (process->return_code())
+		{
+			(void) inform(cb, bunsan::worker::callback::status::not_zero_code,
+				"process return code is not null: \""+boost::lexical_cast<std::string>(process->return_code())+"\"");
+			SLOG("process return code is not null: \""<<process->return_code()<<"\"");
+		}
+		else
+		{
+			(void) inform(cb, bunsan::worker::callback::status::completed);
+			DLOG(completed);
+		}
 	}
-	DLOG(creating repository);
-	bunsan::pm::repository repo(repo_config);
-	bunsan::tempfile_ptr tmpdir = bunsan::tempfile::in_dir(worker_tempdir);
-	bunsan::reset_dir(tmpdir->path());
-	repo.extract(package, tmpdir->path());
-	DLOG(preparing async execute);
-	bunsan::process_ptr process = bunsan::async_execute(tmpdir->path(), args, false);// TODO inform callback
-	DLOG(starting child wait loop);
-	while (!process->completed())
+	catch (interrupted_error &e)
 	{
-		check_running();
-		process->wait(boost::posix_time::milliseconds(stop_check_interval));
+		inform(cb, bunsan::worker::callback::status::server_terminated);
 	}
-	if (process->return_code())
-		SLOG("process return code is not null: \""<<process->return_code()<<"\"");
-	else
-		DLOG(completed);// TODO inform callback
+	catch (std::exception &e)
+	{
+		inform(cb, bunsan::worker::callback::status::error, e.what());
+	}
 }
 
 void add_to_hub(const std::string &prefix, const boost::property_tree::ptree &resources, const std::string &machine, const std::string &uri, bunsan::dcs::hub_ptr hub)

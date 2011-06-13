@@ -6,11 +6,14 @@
 #include <atomic>
 #include <vector>
 
+#include <boost/optional.hpp>
+
 #include "zmq.hpp"
 
 #include "executor.hpp"
 #include "hub.hpp"
 #include "pool.hpp"
+#include "callback.hpp"
 
 namespace bunsan{namespace worker{namespace pools
 {
@@ -27,12 +30,14 @@ namespace bunsan{namespace worker{namespace pools
 		void worker_func();
 		void check_running();
 		void check_dirs();
-		void do_task(const std::vector<std::string> &task);
+		void do_task(const std::string &callback_type, const std::string &callback_uri, const std::vector<std::string> &callback_args, const std::string &package, const std::vector<std::string> &args, const boost::optional<std::vector<unsigned char>> &stdin_file);
 		void add_to_hub();
 		void register_worker();
 		void hub_update();
 		void unregister_worker();
 		void remove_from_hub();
+		bunsan::worker::callback::action inform(bunsan::worker::callback_ptr cb, bunsan::worker::callback::status st);
+		bunsan::worker::callback::action inform(bunsan::worker::callback_ptr cb, bunsan::worker::callback::status st, std::string msg);
 		std::shared_ptr<zmq::context_t> context;
 		bunsan::dcs::hub_ptr hub;
 		std::thread queue;

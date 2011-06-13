@@ -39,7 +39,7 @@ message("We have to check pthread library on win* platform")
 #target_link_libraries (${PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
 #target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} pthread)
 
-add_definitions(-std=c++0x -pthread -g)
+add_definitions(-std=c++0x -pthread -g -D_GLIBCXX_USE_NANOSLEEP)
 
 if (NOT TARGET bunsan_common)
 	add_subdirectory(${BUNSAN_COMMON_DIR} ${PROJECT_BINARY_DIR}/common EXCLUDE_FROM_ALL)
