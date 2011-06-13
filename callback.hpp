@@ -17,7 +17,17 @@ namespace bunsan{namespace worker
 		enum class status
 		{
 			received,
-			registered
+			registered,
+			preparing,
+			extracting,
+			preparing_executing,
+			executing,
+			completed,
+			not_zero_code,
+			aborted,
+			error,
+			server_terminated,
+			bad
 		};
 		enum class action
 		{
