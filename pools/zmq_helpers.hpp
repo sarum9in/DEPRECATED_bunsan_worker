@@ -5,6 +5,8 @@
 #include <vector>
 #include <algorithm>
 
+#include <boost/optional.hpp>
+
 #include <zmq.hpp>
 
 namespace bunsan{namespace worker{namespace pools{namespace helpers
@@ -39,6 +41,30 @@ namespace bunsan{namespace worker{namespace pools{namespace helpers
 		}
 		else
 			return false;
+	}
+	template <typename T, typename I>
+	bool recv_more(zmq::socket_t &sock, T &c, I &more)
+	{
+		if (more)
+		{
+			zmq::message_t msg;
+			sock.recv(&msg, ZMQ_RCVMORE);
+			decode(msg, c);
+			size_t more_size = sizeof(more);
+			sock.getsockopt(ZMQ_RCVMORE, &more, &more_size);
+		}
+		return more;
+	}
+	template <typename T, typename I>
+	bool recv_more(zmq::socket_t &sock, boost::optional<T> &c, I &more)
+	{
+		if (more)
+		{
+			T c_;
+			recv_more(sock, c_, more);
+			c = c_;
+		}
+		return more;
 	}
 	// string
 	template <>
