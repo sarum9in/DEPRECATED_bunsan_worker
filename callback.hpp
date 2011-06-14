@@ -14,6 +14,7 @@ namespace bunsan{namespace worker
 	class callback
 	{
 	public:
+		typedef std::shared_ptr<callback> callback_ptr;
 		enum class status
 		{
 			received,
@@ -23,7 +24,8 @@ namespace bunsan{namespace worker
 			preparing_executing,
 			executing,
 			completed,
-			not_zero_code,
+			not_exited,
+			non_zero_exit_status,
 			aborted,
 			error,
 			server_terminated,
@@ -44,8 +46,9 @@ namespace bunsan{namespace worker
 		 */
 		virtual action call(status status_type, const std::string &status_message)=0;
 		virtual action call(status status_type);
+		static bunsan::worker::callback::action inform(callback_ptr cb, status st);
+		static bunsan::worker::callback::action inform(callback_ptr cb, status st, std::string msg);
 		// factory
-		typedef std::shared_ptr<callback> callback_ptr;
 		static inline callback_ptr instance(const std::string &type, const std::string &uri, const std::vector<std::string> &args)
 		{
 			return bunsan::factory::instance(factories, type, std::cref(uri), std::cref(args));

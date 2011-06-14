@@ -57,13 +57,14 @@ include_directories(. ${BUNSAN_COMMON_DIR} ${BUNSAN_DCS_DIR} ${BUNSAN_PM_DIR})
 
 aux_source_directory(. srcs)
 aux_source_directory(pools pools_srcs)
+aux_source_directory(workers workers_srcs)
 aux_source_directory(pool_interfaces pool_interfaces_srcs)
 aux_source_directory(callbacks callbacks_srcs)
 
-set(lib_srcs ${srcs} ${pools_srcs} ${pool_interfaces_srcs} ${callbacks_srcs})
+set(lib_srcs ${srcs} ${pools_srcs} ${workers_srcs} ${pool_interfaces_srcs} ${callbacks_srcs})
 list(REMOVE_ITEM lib_srcs "./worker_main.cpp" "./pool_main.cpp")
 
-add_library(${PROJECT_NAME} ${lib_srcs})
+add_library(${PROJECT_NAME} SHARED ${lib_srcs})
 target_link_libraries(${PROJECT_NAME} bunsan_common bunsan_dcs bunsan_pm ${Boost_LIBRARIES} ${xmlrpc_link_lib} zmq)
 
 add_executable(worker worker_main.cpp)
