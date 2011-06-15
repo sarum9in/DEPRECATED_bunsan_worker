@@ -62,6 +62,7 @@ void bunsan::worker::workers::zeromq::run_once()
 	zh::recv_more(*req, callback_args, more);
 	zh::recv_more(*req, package, more);
 	zh::recv_more(*req, args, more);
+#warning error check if (!more)
 	zh::recv_more(*req, stdin_file, more);
 	have_task = wait_task = false;
 	DLOG(task was received);
@@ -122,6 +123,7 @@ void bunsan::worker::workers::zeromq::do_task(const std::string &callback_type, 
 					break;
 				out.put(c);
 			}
+			out.close();
 		}
 		boost::process::status status = child.wait();
 		if (status.exited())
