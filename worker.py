@@ -1,19 +1,20 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-import argparse,  sys,  subprocess,  xmlrpc.client
+import argparse, sys, subprocess, xmlrpc.client, signal
 
-def execute(pool,  pool_args,  worker,  worker_args,  worker_count,  hub,  machine):
+def execute(pool,  pool_args,  worker,  worker_args,  worker_count,  hub,  machine, force=False):
 	dcs = xmlrpc.client.ServerProxy(hub)
 	if pool_args==None:
 		pool_args=[]
 	if worker_args==None:
 		worker_args=[]
 	try:
-		try:
-			dcs.remove_machine(machine)
-		except:
-			print("Unknown error: {0}".format(sys.exc_info()))
+		if force:
+			try:
+				dcs.remove_machine(machine)
+			except:
+				print("Unknown error: {0}".format(sys.exc_info()))
 		dcs.add_machine(machine,  "0")
 		#with subprocess.Popen([pool]+pool_args,  executable=pool,  stdout=sys.stdout,  stderr=sys.stderr) as p:
 		with subprocess.Popen([pool]+pool_args,  executable=pool,  stdout=subprocess.PIPE,  stderr=subprocess.STDOUT) as p:
@@ -40,8 +41,14 @@ def execute(pool,  pool_args,  worker,  worker_args,  worker_count,  hub,  machi
 	finally:
 		dcs.remove_machine(machine)
 
+class InterruptedError(Exception):
+	pass
+
+def exceptionRaiser(signum, frame):
+	raise(InterruptedError(signum))
 
 if __name__=='__main__':
+	signal.signal(signal.SIGTERM, exceptionRaiser)
 	parser = argparse.ArgumentParser("Worker starter")
 	parser.add_argument('-v', '--version', action='version', version='%(prog)s 0.0.1', help="version information")
 	parser.add_argument('-p',  '--pool',  action='store',  dest='pool',  help='pool binary', required=True)
