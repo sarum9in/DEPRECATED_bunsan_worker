@@ -3,6 +3,9 @@
 
 import argparse, sys, subprocess, xmlrpc.client, signal
 
+class InterruptedError(Exception):
+	pass
+
 def execute(pool,  pool_args,  worker,  worker_args,  worker_count,  hub,  machine, force=False):
 	dcs = xmlrpc.client.ServerProxy(hub)
 	if pool_args==None:
@@ -36,13 +39,13 @@ def execute(pool,  pool_args,  worker,  worker_args,  worker_count,  hub,  machi
 					p.wait()
 				except:
 					print("Unknown error: {0}".format(sys.exc_info()))
+	except (InterruptedError, KeyboardInterrupt) as e:
+		print("Execution was interrupted by {0}".format(e))
+		raise
 	except:
 		print("Unknown error: {0}".format(sys.exc_info()))
 	finally:
 		dcs.remove_machine(machine)
-
-class InterruptedError(Exception):
-	pass
 
 def exceptionRaiser(signum, frame):
 	raise(InterruptedError(signum))
@@ -58,5 +61,12 @@ if __name__=='__main__':
 	parser.add_argument('-c', '--worker-count',  action='store',  dest='worker_count',  type=int,  help='worker count',  required=True)
 	parser.add_argument('-d', '--hub',  action='store',  dest='hub',  help='hub xmlrpc interface',  required=True)
 	parser.add_argument('-m', '--machine',  action='store',  dest='machine',  help='machine name',  required=True)
+	parser.add_argument('-r', '--restart',  action='store_true',  dest='restart',  help='auto restart execution except keyboard interruption and SIGTERM')
 	args = parser.parse_args()
-	execute(args.pool,  args.pool_args,  args.worker,  args.worker_args,  args.worker_count,  args.hub,  args.machine)
+	while True:
+		execute(args.pool,  args.pool_args,  args.worker,  args.worker_args,  args.worker_count,  args.hub,  args.machine)
+		if not args.restart:
+			break
+		else:
+			print("Restarting", file=sys.stderr)
+
