@@ -1,12 +1,76 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-import argparse, sys, subprocess, xmlrpc.client, signal
+import argparse, sys, subprocess, xmlrpc.client, signal, time
 
 class InterruptedError(Exception):
 	pass
 
-def execute(pool,  pool_args,  worker,  worker_args,  worker_count,  hub,  machine, force=False):
+class SingleProcess(object):
+	def __init__(self, executable, args, stdout=None, stderr=None):
+		self._starter = lambda: subprocess.Popen([executable]+args, executable=executable, stdout=stdout, stderr=stderr)
+		try:
+			self._inst = self._starter()
+		except:
+			try:
+				self._inst.terminate()
+				self._inst.wait()
+			except:
+				pass
+			raise
+	def __enter__(self):
+		return self
+	def __exit__(self, type, value, traceback):
+		self._inst.terminate()
+		self._inst.wait()
+	def restart_dead(self):
+		if self._inst.poll()!=None:
+			print("Restarting process", file=sys.stderr)
+			self._inst = self._starter()
+	def wait(self):
+		return self._inst.wait()
+	def poll(self):
+		return self._inst.poll()
+	def terminate(self):
+		self._inst.terminate()
+
+class ProcessArray(object):
+	def __init__(self, executable, args, count, stdout=None, stderr=None):
+		self._starter = lambda: subprocess.Popen([executable]+args, executable=executable, stdout=stdout, stderr=stderr)
+		self._inst = []
+		try:
+			for i in range(count):
+				proc = self._starter()
+				self._inst.append(proc)
+		except:
+			for i in self._inst:
+				try:
+					i.terminate()
+					i.wait()
+				except:
+					pass
+			raise
+	def __enter__(self):
+		return self
+	def __exit__(self, type, value, traceback):
+		for i in self._inst:
+			i.terminate()
+			i.wait()
+	def restart_dead(self):
+		for i in range(len(self._inst)):
+			if self._inst[i].poll()!=None:
+				print("Restarting process #{0}".format(i), file=sys.stderr)
+				self._inst[i] = self._starter()
+	def wait_all(self):
+		w = []
+		for i in self._inst:
+			w.append(i.wait())
+		return w
+	def terminate_all(self):
+		for i in self._inst:
+			i.terminate()
+
+def execute(pool, pool_args, worker, worker_args, worker_count, hub, machine, quiet, log, force=False):
 	dcs = xmlrpc.client.ServerProxy(hub)
 	if pool_args==None:
 		pool_args=[]
@@ -16,34 +80,23 @@ def execute(pool,  pool_args,  worker,  worker_args,  worker_count,  hub,  machi
 		if force:
 			try:
 				dcs.remove_machine(machine)
-			except:
-				print("Unknown error: {0}".format(sys.exc_info()))
-		dcs.add_machine(machine,  "0")
-		#with subprocess.Popen([pool]+pool_args,  executable=pool,  stdout=sys.stdout,  stderr=sys.stderr) as p:
-		with subprocess.Popen([pool]+pool_args,  executable=pool,  stdout=subprocess.PIPE,  stderr=subprocess.STDOUT) as p:
-			w = []
-			try:
-				for i in range(worker_count):
-					w += [subprocess.Popen([worker]+worker_args,  executable=worker,  stdout=sys.stdout,  stderr=sys.stderr)]
-				while p.poll()==None:
-					print(p.stdout.readline().decode('utf8'),  end='')
-			finally:
-				for i in w:
-					try:
-						i.terminate()
-						i.wait()
-					except:
-						print("Unknown error: {0}".format(sys.exc_info()))
-				try:
-					p.terminate()
-					p.wait()
-				except:
-					print("Unknown error: {0}".format(sys.exc_info()))
+			except Exception as e:
+				print("Expected error: {0}".format(e))
+		dcs.add_machine(machine, "0")
+		#n = open("/dev/null")
+		#with SingleProcess(pool, pool_args, n, n) as p:
+		#	with ProcessArray(worker, worker_args, worker_count, n, n) as w:
+		with SingleProcess(pool, pool_args, sys.stdout, sys.stderr) as p:
+			with ProcessArray(worker, worker_args, worker_count, sys.stdout, sys.stderr) as w:
+				while True:
+					time.sleep(1)
+					p.restart_dead()
+					w.restart_dead()
 	except (InterruptedError, KeyboardInterrupt) as e:
 		print("Execution was interrupted by {0}".format(e))
 		raise
-	except:
-		print("Unknown error: {0}".format(sys.exc_info()))
+	except Exception as e:
+		print("Unknown error: {0}".format(e))
 	finally:
 		dcs.remove_machine(machine)
 
@@ -61,12 +114,8 @@ if __name__=='__main__':
 	parser.add_argument('-c', '--worker-count',  action='store',  dest='worker_count',  type=int,  help='worker count',  required=True)
 	parser.add_argument('-d', '--hub',  action='store',  dest='hub',  help='hub xmlrpc interface',  required=True)
 	parser.add_argument('-m', '--machine',  action='store',  dest='machine',  help='machine name',  required=True)
-	parser.add_argument('-r', '--restart',  action='store_true',  dest='restart',  help='auto restart execution except keyboard interruption and SIGTERM')
+	parser.add_argument('-q', '--quiet',  action='store_true',  dest='quiet',  help='will output nothing from pool and workers')
+	parser.add_argument('-l', '--log', action='store', dest='log', help='directory were logs will be placed')
 	args = parser.parse_args()
-	while True:
-		execute(args.pool,  args.pool_args,  args.worker,  args.worker_args,  args.worker_count,  args.hub,  args.machine)
-		if not args.restart:
-			break
-		else:
-			print("Restarting", file=sys.stderr)
+	execute(args.pool,  args.pool_args,  args.worker,  args.worker_args,  args.worker_count,  args.hub,  args.machine, args.quiet, args.log)
 
