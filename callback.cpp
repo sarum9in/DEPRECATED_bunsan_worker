@@ -21,7 +21,6 @@ bunsan::worker::callback::action bunsan::worker::callback::call(status status_ty
 	PROC(aborted)
 	PROC(error)
 	PROC(server_terminated)
-	PROC(bad)
 	default:
 		return call(status_type, "");
 	}

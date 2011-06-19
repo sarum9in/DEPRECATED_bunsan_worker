@@ -28,14 +28,13 @@ namespace bunsan{namespace worker
 			non_zero_exit_status,
 			aborted,
 			error,
-			server_terminated,
-			bad
+			server_terminated
 		};
 		enum class action
 		{
-			nop,
-			abort,
-			bad
+			nop,			//< no operation, execution should continue
+			abort,			//< execution should be aborted
+			bad			//< used when callback proxy can't connect to the server
 		};
 		// virtual class
 		/*!
