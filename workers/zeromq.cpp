@@ -103,6 +103,8 @@ void bunsan::worker::workers::zeromq::do_task(const std::string &callback_type, 
 			return;
 		}
 		DLOG(preparing async execute);
+		if (args.empty())
+			throw std::runtime_error("Nothing to execute!");
 		SLOG("exec in "<<tmpdir->path()<<" file "<<tmpdir->path()/args.at(0));
 		//DLOG(starting child wait loop);
 #warning bad implementation, workaround only, TODO
@@ -152,6 +154,7 @@ void bunsan::worker::workers::zeromq::do_task(const std::string &callback_type, 
 	}*/
 	catch (std::exception &e)
 	{
+		SLOG("Oops! \""<<e.what()<<"\"");
 		bunsan::worker::callback::inform(cb, bunsan::worker::callback::status::error, e.what());
 	}
 }
