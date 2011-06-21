@@ -10,8 +10,8 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/noncopyable.hpp>
 
-#include "simple_service.hpp"
-#include "factory.hpp"
+#include "bunsan/simple_service.hpp"
+#include "bunsan/factory.hpp"
 
 namespace bunsan{namespace worker
 {

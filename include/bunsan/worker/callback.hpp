@@ -7,7 +7,7 @@
 #include <string>
 #include <memory>
 
-#include "factory.hpp"
+#include "bunsan/factory.hpp"
 
 namespace bunsan{namespace worker
 {

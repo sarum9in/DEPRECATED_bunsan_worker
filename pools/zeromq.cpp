@@ -8,12 +8,13 @@
 
 #include <unistd.h>
 
-#include "repository.hpp"
-#include "tempfile.hpp"
-#include "execute.hpp"
-#include "callback.hpp"
+#include "bunsan/tempfile.hpp"
+#include "bunsan/execute.hpp"
+#include "bunsan/zmq_helpers.hpp"
 
-#include "zmq_helpers.hpp"
+#include "bunsan/pm/repository.hpp"
+
+#include "bunsan/worker/callback.hpp"
 
 bool bunsan::worker::pools::zeromq::factory_reg_hook = bunsan::worker::pool::register_new("zeromq",
 	[](const boost::property_tree::ptree &config)

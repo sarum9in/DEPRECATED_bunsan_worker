@@ -2,18 +2,6 @@ project(bunsan_worker)
 
 cmake_minimum_required(VERSION 2.8)
 
-if (NOT DEFINED BUNSAN_COMMON_DIR)
-	message(SEND_ERROR "you have to define BUNSAN_COMMON_DIR variable")
-endif()
-
-if (NOT DEFINED BUNSAN_DCS_DIR)
-	message(SEND_ERROR "you have to define BUNSAN_DCS_DIR variable")
-endif()
-
-if (NOT DEFINED BUNSAN_PM_DIR)
-	message(SEND_ERROR "you have to define BUNSAN_PM_DIR variable")
-endif()
-
 set(
 	xmlrpc_link_lib
 	xmlrpc++
@@ -41,19 +29,7 @@ message("We have to check pthread library on win* platform")
 
 add_definitions(-std=c++0x -pthread -g -D_GLIBCXX_USE_NANOSLEEP)
 
-if (NOT TARGET bunsan_common)
-	add_subdirectory(${BUNSAN_COMMON_DIR} ${PROJECT_BINARY_DIR}/common EXCLUDE_FROM_ALL)
-endif()
-
-if (NOT TARGET bunsan_dcs)
-	add_subdirectory(${BUNSAN_DCS_DIR} ${PROJECT_BINARY_DIR}/dcs EXCLUDE_FROM_ALL)
-endif()
-
-if (NOT TARGET bunsan_pm)
-	add_subdirectory(${BUNSAN_PM_DIR} ${PROJECT_BINARY_DIR}/pm EXCLUDE_FROM_ALL)
-endif()
-
-include_directories(. ${BUNSAN_COMMON_DIR} ${BUNSAN_DCS_DIR} ${BUNSAN_PM_DIR})
+include_directories(include)
 
 aux_source_directory(. srcs)
 aux_source_directory(pools pools_srcs)
@@ -72,4 +48,10 @@ target_link_libraries(worker ${PROJECT_NAME})
 
 add_executable(pool pool_main.cpp)
 target_link_libraries(pool ${PROJECT_NAME})
+
+# install
+
+install(DIRECTORY include DESTINATION .)
+install(TARGETS ${PROJECT_NAME} DESTINATION bin)
+install(PROGRAMS worker.py DESTINATION bin)
 

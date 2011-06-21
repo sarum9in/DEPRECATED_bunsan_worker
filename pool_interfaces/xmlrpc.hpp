@@ -1,9 +1,10 @@
 #ifndef XMLRPC_HPP
 #define XMLRPC_HPP
 
-#include "pool.hpp"
-#include "pool_interface.hpp"
-#include "xmlrpc_service.hpp"
+#include "bunsan/xmlrpc_service.hpp"
+
+#include "bunsan/worker/pool.hpp"
+#include "bunsan/worker/pool_interface.hpp"
 
 namespace bunsan{namespace worker{namespace pool_interfaces
 {

@@ -3,8 +3,9 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include "complex_service.hpp"
-#include "pool_interface.hpp"
+#include "bunsan/complex_service.hpp"
+
+#include "bunsan/worker/pool_interface.hpp"
 
 namespace bunsan{namespace worker{namespace pool_interfaces
 {

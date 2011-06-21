@@ -2,8 +2,9 @@
 
 #include <boost/process.hpp>
 
-#include "tempfile.hpp"
-#include "repository.hpp"
+#include "bunsan/tempfile.hpp"
+
+#include "bunsan/pm/repository.hpp"
 
 bool bunsan::worker::workers::zeromq::factory_reg_hook = bunsan::worker::worker::register_new("zeromq",
 	[](const boost::property_tree::ptree &config)

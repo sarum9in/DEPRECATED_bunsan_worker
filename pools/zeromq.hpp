@@ -8,12 +8,14 @@
 
 #include <boost/optional.hpp>
 
-#include "zmq.hpp"
+#include <zmq.hpp>
 
-#include "executor.hpp"
-#include "hub.hpp"
-#include "pool.hpp"
-#include "callback.hpp"
+#include "bunsan/executor.hpp"
+
+#include "bunsan/dcs/hub.hpp"
+
+#include "bunsan/worker/pool.hpp"
+#include "bunsan/worker/callback.hpp"
 
 namespace bunsan{namespace worker{namespace pools
 {

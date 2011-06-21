@@ -7,9 +7,10 @@
 
 #include <boost/filesystem.hpp>
 
-#include "util.hpp"
-#include "pool.hpp"
-#include "pool_interface.hpp"
+#include "bunsan/util.hpp"
+
+#include "bunsan/worker/pool.hpp"
+#include "bunsan/worker/pool_interface.hpp"
 
 int main(int argc, char **argv)
 {

@@ -1,7 +1,7 @@
 #ifndef XMLRPC_HPP
 #define XMLRPC_HPP
 
-#include "callback.hpp"
+#include "bunsan/worker/callback.hpp"
 
 namespace bunsan{namespace worker{namespace callbacks
 {

@@ -5,10 +5,12 @@
 
 #include <zmq.hpp>
 
-#include "worker.hpp"
-#include "zmq_helpers.hpp"
-#include "hub.hpp"
-#include "callback.hpp"
+#include "bunsan/zmq_helpers.hpp"
+
+#include "bunsan/dcs/hub.hpp"
+
+#include "bunsan/worker/worker.hpp"
+#include "bunsan/worker/callback.hpp"
 
 namespace bunsan{namespace worker{namespace workers
 {

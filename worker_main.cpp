@@ -9,8 +9,9 @@
 
 #include <boost/filesystem.hpp>
 
-#include "util.hpp"
-#include "worker.hpp"
+#include "bunsan/util.hpp"
+
+#include "bunsan/worker/worker.hpp"
 
 volatile sig_atomic_t interrupted = false;
 
