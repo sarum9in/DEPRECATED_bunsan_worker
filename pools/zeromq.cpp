@@ -57,13 +57,15 @@ bunsan::worker::pools::zeromq::zeromq(const boost::property_tree::ptree &config)
 	}
 }
 
-class interrupted_error: public std::runtime_error
+namespace
 {
-	static const char message[];
-public:
-	interrupted_error(): std::runtime_error(::interrupted_error::message){}
-};
-const char interrupted_error::message[] = "execution was interrupted";
+	class interrupted_error: public std::runtime_error
+	{
+		static constexpr const char *message = "execution was interrupted";
+	public:
+		interrupted_error(): std::runtime_error(::interrupted_error::message){}
+	};
+}
 
 void bunsan::worker::pools::zeromq::check_running()
 {
@@ -103,11 +105,14 @@ void bunsan::worker::pools::zeromq::add_task(const std::string &callback_type, c
 	DLOG(new task was registered);
 }
 
-class reportable_error: public std::runtime_error// TODO is it needed?
+namespace
 {
-public:
-	reportable_error(const std::string &callback);
-};
+	class reportable_error: public std::runtime_error// TODO is it needed?
+	{
+	public:
+		reportable_error(const std::string &callback);
+	};
+}
 
 void bunsan::worker::pools::zeromq::queue_func()
 {
@@ -186,14 +191,17 @@ void bunsan::worker::pools::zeromq::queue_func()
 	}
 }
 
-void add_to_hub(const std::string &prefix, const boost::property_tree::ptree &resources, const std::string &machine, const std::string &uri, bunsan::dcs::hub_ptr hub)
+namespace
 {
-	for (const auto &value: resources)
+	void add_to_hub(const std::string &prefix, const boost::property_tree::ptree &resources, const std::string &machine, const std::string &uri, bunsan::dcs::hub_ptr hub)
 	{
-		if (value.second.empty())
-			hub->add_resource(machine, prefix+value.first, uri);
-		else
-			add_to_hub(prefix+value.first, value.second, machine, uri, hub);
+		for (const auto &value: resources)
+		{
+			if (value.second.empty())
+				hub->add_resource(machine, prefix+value.first, uri);
+			else
+				add_to_hub(prefix+value.first, value.second, machine, uri, hub);
+		}
 	}
 }
 
