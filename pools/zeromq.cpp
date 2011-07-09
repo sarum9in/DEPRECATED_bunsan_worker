@@ -9,7 +9,6 @@
 #include <unistd.h>
 
 #include "bunsan/tempfile.hpp"
-#include "bunsan/execute.hpp"
 #include "bunsan/zmq_helpers.hpp"
 
 #include "bunsan/pm/repository.hpp"
