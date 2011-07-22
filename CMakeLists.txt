@@ -50,5 +50,5 @@ target_link_libraries(pool ${PROJECT_NAME})
 
 install(DIRECTORY include DESTINATION .)
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
-install(PROGRAMS worker.py DESTINATION bin)
+install(PROGRAMS src/worker.py DESTINATION bin)
 
