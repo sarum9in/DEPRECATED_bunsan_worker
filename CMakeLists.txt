@@ -23,30 +23,27 @@ include_directories(${Boost_INCLUDE_DIRS})
 #include_directories(/usr/local/include)
 #link_directories(/usr/local/lib)
 message("We have to check pthread library on win* platform")
-#find_package (Threads)
-#target_link_libraries (${PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
+#find_package(Threads)
+#target_link_libraries(${PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
 #target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} pthread)
 
 add_definitions(-std=c++0x -pthread -g -D_GLIBCXX_USE_NANOSLEEP)
 
 include_directories(include)
 
-aux_source_directory(. srcs)
-aux_source_directory(pools pools_srcs)
-aux_source_directory(workers workers_srcs)
-aux_source_directory(pool_interfaces pool_interfaces_srcs)
-aux_source_directory(callbacks callbacks_srcs)
-
-set(lib_srcs ${srcs} ${pools_srcs} ${workers_srcs} ${pool_interfaces_srcs} ${callbacks_srcs})
-list(REMOVE_ITEM lib_srcs "./worker_main.cpp" "./pool_main.cpp")
+aux_source_directory(src/lib lib_srcs)
+aux_source_directory(src/lib/pools pools_srcs)
+aux_source_directory(src/lib/workers workers_srcs)
+aux_source_directory(src/lib/pool_interfaces pool_interfaces_srcs)
+aux_source_directory(src/lib/callbacks callbacks_srcs)
 
 add_library(${PROJECT_NAME} SHARED ${lib_srcs})
 target_link_libraries(${PROJECT_NAME} bunsan_common bunsan_dcs bunsan_pm ${Boost_LIBRARIES} ${xmlrpc_link_lib} zmq)
 
-add_executable(worker worker_main.cpp)
+add_executable(worker src/worker_main.cpp)
 target_link_libraries(worker ${PROJECT_NAME})
 
-add_executable(pool pool_main.cpp)
+add_executable(pool src/pool_main.cpp)
 target_link_libraries(pool ${PROJECT_NAME})
 
 # install
