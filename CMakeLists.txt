@@ -37,7 +37,7 @@ aux_source_directory(src/lib/workers workers_srcs)
 aux_source_directory(src/lib/pool_interfaces pool_interfaces_srcs)
 aux_source_directory(src/lib/callbacks callbacks_srcs)
 
-add_library(${PROJECT_NAME} SHARED ${lib_srcs})
+add_library(${PROJECT_NAME} SHARED ${lib_srcs} ${pools_srcs} ${workers_srcs} ${pool_interfaces_srcs} ${callbacks_srcs})
 target_link_libraries(${PROJECT_NAME} bunsan_common bunsan_dcs bunsan_pm ${Boost_LIBRARIES} ${xmlrpc_link_lib} zmq)
 
 add_executable(worker src/worker_main.cpp)
@@ -49,6 +49,8 @@ target_link_libraries(pool ${PROJECT_NAME})
 # install
 
 install(DIRECTORY include DESTINATION .)
-install(TARGETS ${PROJECT_NAME} DESTINATION bin)
+install(TARGETS ${PROJECT_NAME} worker pool
+                          RUNTIME DESTINATION bin
+                          LIBRARY DESTINATION lib)
 install(PROGRAMS src/worker.py DESTINATION bin)
 
