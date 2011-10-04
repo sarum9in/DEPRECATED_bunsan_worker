@@ -32,6 +32,7 @@ pool
 	type zeromq
 	config
 	{
+		linger 5000 ; milliseconds
 		iothreads 1
 		size 3
 		stop_check_interval 5000 ; microseconds?? milliseconds!

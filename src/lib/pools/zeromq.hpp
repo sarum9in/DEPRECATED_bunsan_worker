@@ -30,24 +30,14 @@ namespace bunsan{namespace worker{namespace pools
 	private:
 		void queue_func();
 		void check_running();
-		void add_to_hub();
-		void register_worker();
-		void hub_update();
-		void unregister_worker();
-		void remove_from_hub();
 		std::shared_ptr<zmq::context_t> context;
-		bunsan::dcs::hub_ptr hub;
 		std::thread queue;
 		std::atomic<bool> to_stop;
-		std::atomic<size_t> capacity;
 		const unsigned iothreads;
+		const int linger;
 		const unsigned worker_port;
 		const unsigned queue_port;
 		const unsigned long stop_check_interval;
-		const std::string uri;
-		const std::string machine;
-		const boost::property_tree::ptree resources;
-		const std::string worker_tempdir;
 		static bool factory_reg_hook;
 	};
 }}}

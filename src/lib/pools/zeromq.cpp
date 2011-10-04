@@ -23,25 +23,14 @@ bool bunsan::worker::pools::zeromq::factory_reg_hook = bunsan::worker::pool::reg
 	});
 
 bunsan::worker::pools::zeromq::zeromq(const boost::property_tree::ptree &config):
-	iothreads(config.get<int>("iothreads")),
+	iothreads(config.get<unsigned>("iothreads")),
+	linger(config.get<int>("linger")),
 	worker_port(config.get<unsigned>("worker.port")),
 	queue_port(config.get<unsigned>("queue.port")),
-	stop_check_interval(config.get<unsigned long>("stop_check_interval")),
-	uri(config.get<std::string>("uri")),
-	machine(config.get<std::string>("machine")),
-	resources(config.get_child("resources")),
-	worker_tempdir(config.get<std::string>("worker.tmp"))
+	stop_check_interval(config.get<unsigned long>("stop_check_interval"))
 {
 	DLOG(creating zeromq pool instance);
-	bunsan::reset_dir(worker_tempdir);
-	SLOG("attempt to create hub of "<<config.get<std::string>("hub.type")<<" type");
-	hub = bunsan::dcs::hub::instance(config.get<std::string>("hub.type"), config.get_child("hub.config")); // you should use proxy hub
-	if (!hub)
-		throw std::runtime_error("hub was not created");
-	hub->start();
 	to_stop.store(false);
-	capacity.store(0);
-	//add_to_hub();
 	context.reset(new zmq::context_t(iothreads));
 	try
 	{
@@ -76,8 +65,9 @@ void bunsan::worker::pools::zeromq::add_task(const std::string &callback_type, c
 {
 	DLOG(registrating new task);
 	check_running();
-	zmq::socket_t push(*context, ZMQ_PUSH);
-#warning deadlock possible, use ZMQ_LINGER?
+	bunsan::zmq_helpers::socket push(*context, ZMQ_PUSH);
+#warning TODO check for deadlock
+	push.set_linger(linger);
 	push.connect(("tcp://localhost:"+boost::lexical_cast<std::string>(queue_port)).c_str());
 	SLOG("creating callback instance with type=\""<<callback_type<<"\" and uri=\""<<callback_uri<<"\"");
 	bunsan::worker::callback_ptr cb = bunsan::worker::callback::instance(callback_type, callback_uri, callback_args);
@@ -96,8 +86,10 @@ void bunsan::worker::pools::zeromq::add_task(const std::string &callback_type, c
 	if (cb)
 	{
 		DLOG(informing callback);
-		(void) bunsan::worker::callback::inform(cb, bunsan::worker::callback::status::registered);
-		DLOG(informed);
+		if (bunsan::worker::callback::action::bad==bunsan::worker::callback::inform(cb, bunsan::worker::callback::status::registered))
+			DLOG(unable to inform invalid callback);
+		else
+			DLOG(informed);
 	}
 	else
 		DLOG(bad callback type);
@@ -171,67 +163,6 @@ void bunsan::worker::pools::zeromq::queue_func()
 	{
 		SLOG("Oops! "<<e.what());
 	}
-	try
-	{
-		//remove_from_hub();
-	}
-	catch (std::exception &e)
-	{
-		SLOG("Oops! "<<e.what());
-	}
-	try
-	{
-		DLOG(stopping hub);
-		hub->stop();
-	}
-	catch (std::exception &e)
-	{
-		SLOG("Oops! "<<e.what());
-	}
-}
-
-namespace
-{
-	void add_to_hub(const std::string &prefix, const boost::property_tree::ptree &resources, const std::string &machine, const std::string &uri, bunsan::dcs::hub_ptr hub)
-	{
-		for (const auto &value: resources)
-		{
-			if (value.second.empty())
-				hub->add_resource(machine, prefix+value.first, uri);
-			else
-				add_to_hub(prefix+value.first, value.second, machine, uri, hub);
-		}
-	}
-}
-
-void bunsan::worker::pools::zeromq::add_to_hub()
-{
-	DLOG(inserting instance to hub);
-	hub->add_machine(machine, 0);
-	::add_to_hub("", resources, machine, uri, hub);
-}
-
-void bunsan::worker::pools::zeromq::hub_update()
-{
-	hub->set_capacity(machine, capacity.load());
-}
-
-void bunsan::worker::pools::zeromq::register_worker()
-{
-	++capacity;
-	hub_update();
-}
-
-void bunsan::worker::pools::zeromq::unregister_worker()
-{
-	--capacity;
-	hub_update();
-}
-
-void bunsan::worker::pools::zeromq::remove_from_hub()
-{
-	DLOG(removing instance from hub);
-	hub->remove_machine(machine);
 }
 
 void bunsan::worker::pools::zeromq::join()
