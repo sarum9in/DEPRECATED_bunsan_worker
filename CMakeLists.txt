@@ -13,7 +13,7 @@ include_directories(${Boost_INCLUDE_DIRS})
 message(AUTHOR_WARNING "We have to check pthread library on win* platform")
 message(AUTHOR_WARNING "We have to provide support for different compilers")
 
-add_definitions(-std=c++0x -pthread -g -D_GLIBCXX_USE_NANOSLEEP)
+add_definitions(-std=c++0x -pthread -g -D_GLIBCXX_USE_NANOSLEEP -Wall -Wextra)
 
 include_directories(include ${XMLRPC_INCLUDE_DIRS})
 
