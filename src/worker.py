@@ -71,7 +71,9 @@ class ProcessArray(object):
 			i.terminate()
 
 def execute(pool, pool_args, worker, worker_args, worker_count, hub, machine, quiet, log, force=False):
-	dcs = xmlrpc.client.ServerProxy(hub)
+	dcs = None
+	if hub!=None:
+		dcs = xmlrpc.client.ServerProxy(hub)
 	if pool_args==None:
 		pool_args=[]
 	if worker_args==None:
@@ -79,10 +81,12 @@ def execute(pool, pool_args, worker, worker_args, worker_count, hub, machine, qu
 	try:
 		if force:
 			try:
-				dcs.remove_machine(machine)
+				if dcs!=None:
+					dcs.remove_machine(machine)
 			except Exception as e:
 				print("Expected error: {0}".format(e))
-		dcs.add_machine(machine, "0")
+		if dcs!=None:
+			dcs.add_machine(machine, "0")
 		#n = open("/dev/null")
 		#with SingleProcess(pool, pool_args, n, n) as p:
 		#	with ProcessArray(worker, worker_args, worker_count, n, n) as w:
@@ -98,7 +102,8 @@ def execute(pool, pool_args, worker, worker_args, worker_count, hub, machine, qu
 	except Exception as e:
 		print("Unknown error: {0}".format(e))
 	finally:
-		dcs.remove_machine(machine)
+		if dcs!=None:
+			dcs.remove_machine(machine)
 
 def exceptionRaiser(signum, frame):
 	raise(InterruptedError(signum))
@@ -112,8 +117,8 @@ if __name__=='__main__':
 	parser.add_argument('--pool-args',  action='store',  dest='pool_args',  help='pool args')
 	parser.add_argument('--worker-args',  action='store',  dest='worker_args',  help='worker args')
 	parser.add_argument('-c', '--worker-count',  action='store',  dest='worker_count',  type=int,  help='worker count',  required=True)
-	parser.add_argument('-d', '--hub',  action='store',  dest='hub',  help='hub xmlrpc interface',  required=True)
-	parser.add_argument('-m', '--machine',  action='store',  dest='machine',  help='machine name',  required=True)
+	parser.add_argument('-d', '--hub',  action='store',  dest='hub',  help='hub xmlrpc interface',  required=False)
+	parser.add_argument('-m', '--machine',  action='store',  dest='machine',  help='machine name',  required=False)
 	parser.add_argument('-q', '--quiet',  action='store_true',  dest='quiet',  help='will output nothing from pool and workers')
 	parser.add_argument('-l', '--log', action='store', dest='log', help='directory were logs will be placed')
 	args = parser.parse_args()
