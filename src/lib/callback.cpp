@@ -13,7 +13,7 @@ bunsan::worker::callback::action bunsan::worker::callback::call(status status_ty
 	PROC(registered)
 	PROC(preparing)
 	PROC(extracting)
-	PROC(preparing_executing)
+	PROC(preparing_execution)
 	PROC(executing)
 	PROC(completed)
 	PROC(not_exited)

@@ -98,7 +98,7 @@ void bunsan::worker::workers::zeromq::do_task(const std::string &callback_type, 
 		bunsan::tempfile_ptr tmpdir = bunsan::tempfile::in_dir(worker_tempdir);
 		bunsan::reset_dir(tmpdir->path());
 		repo.extract(package, tmpdir->path());
-		if (bunsan::worker::callback::action::abort==bunsan::worker::callback::inform(cb, bunsan::worker::callback::status::preparing_executing))
+		if (bunsan::worker::callback::action::abort==bunsan::worker::callback::inform(cb, bunsan::worker::callback::status::preparing_execution))
 		{
 			bunsan::worker::callback::inform(cb, bunsan::worker::callback::status::aborted);
 			return;

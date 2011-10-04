@@ -21,7 +21,7 @@ namespace bunsan{namespace worker
 			registered,
 			preparing,
 			extracting,
-			preparing_executing,
+			preparing_execution,
 			executing,
 			completed,
 			not_exited,
@@ -34,7 +34,7 @@ namespace bunsan{namespace worker
 		{
 			nop,			//< no operation, execution should continue
 			abort,			//< execution should be aborted
-			bad			//< used when callback proxy can't connect to the server
+			bad			//< used when callback proxy can't connect to the server or callback was not initialized
 		};
 		// virtual class
 		/*!
@@ -45,7 +45,9 @@ namespace bunsan{namespace worker
 		 */
 		virtual action call(status status_type, const std::string &status_message)=0;
 		virtual action call(status status_type);
+		/// send status using callback with default message for this status
 		static bunsan::worker::callback::action inform(callback_ptr cb, status st);
+		/// send status and message using callback
 		static bunsan::worker::callback::action inform(callback_ptr cb, status st, std::string msg);
 		// factory
 		static inline callback_ptr instance(const std::string &type, const std::string &uri, const std::vector<std::string> &args)
