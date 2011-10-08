@@ -25,18 +25,18 @@ bunsan::worker::workers::zeromq::zeromq(const boost::property_tree::ptree &confi
 	if (!hub)
 		throw std::runtime_error("hub was not created");
 	hub->start();
-	req.reset(new bunsan::zmq_helpers::socket(context, ZMQ_REQ));
+	req.reset(new zmq::socket(context, ZMQ_REQ));
+	req->set_linger(0);
 	req->connect(("tcp://localhost:"+config.get<std::string>("worker.port")).c_str());
 }
 
 bool bunsan::worker::workers::zeromq::prepare()
 {
-	namespace zh = bunsan::zmq_helpers;
 	if (have_task)
 		return true;
 	if (!wait_task)
 	{
-		zh::send("", *req);
+		req->send("");
 		wait_task = true;
 	}
 	zmq::pollitem_t items[] =
@@ -50,7 +50,6 @@ bool bunsan::worker::workers::zeromq::prepare()
 void bunsan::worker::workers::zeromq::run_once()
 {
 	while (!prepare());
-	namespace zh = bunsan::zmq_helpers;
 	std::string callback_type, callback_uri;
 	std::vector<std::string> callback_args;
 	std::string package;
@@ -58,13 +57,13 @@ void bunsan::worker::workers::zeromq::run_once()
 	boost::optional<std::vector<unsigned char>> stdin_file;
 	int more = 1;
 	DLOG(receiving a task);
-	zh::recv_more(*req, callback_type, more);
-	zh::recv_more(*req, callback_uri, more);
-	zh::recv_more(*req, callback_args, more);
-	zh::recv_more(*req, package, more);
-	zh::recv_more(*req, args, more);
+	req->recv_more(callback_type, more);
+	req->recv_more(callback_uri, more);
+	req->recv_more(callback_args, more);
+	req->recv_more(package, more);
+	req->recv_more(args, more);
 #warning error check if (!more)
-	zh::recv_more(*req, stdin_file, more);
+	req->recv_more(stdin_file, more);
 	have_task = wait_task = false;
 	DLOG(task was received);
 	do_task(callback_type, callback_uri, callback_args, package, args, stdin_file);

@@ -8,9 +8,8 @@
 
 #include <boost/optional.hpp>
 
-#include <zmq.hpp>
-
 #include "bunsan/executor.hpp"
+#include "bunsan/zmq.hpp"
 
 #include "bunsan/dcs/hub.hpp"
 

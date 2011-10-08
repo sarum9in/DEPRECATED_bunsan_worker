@@ -9,7 +9,7 @@
 #include <unistd.h>
 
 #include "bunsan/tempfile.hpp"
-#include "bunsan/zmq_helpers.hpp"
+#include "bunsan/zmq.hpp"
 
 #include "bunsan/pm/repository.hpp"
 
@@ -65,7 +65,7 @@ void bunsan::worker::pools::zeromq::add_task(const std::string &callback_type, c
 {
 	DLOG(registrating new task);
 	check_running();
-	bunsan::zmq_helpers::socket push(*context, ZMQ_PUSH);
+	zmq::socket push(*context, ZMQ_PUSH);
 #warning TODO check for deadlock
 	push.set_linger(linger);
 	push.connect(("tcp://localhost:"+boost::lexical_cast<std::string>(queue_port)).c_str());
@@ -76,13 +76,13 @@ void bunsan::worker::pools::zeromq::add_task(const std::string &callback_type, c
 		bunsan::worker::callback::inform(cb, bunsan::worker::callback::status::aborted);
 		return;
 	}
-	bunsan::zmq_helpers::send(callback_type, push, ZMQ_SNDMORE);
-	bunsan::zmq_helpers::send(callback_uri, push, ZMQ_SNDMORE);
-	bunsan::zmq_helpers::send(callback_args, push, ZMQ_SNDMORE);
-	bunsan::zmq_helpers::send(package, push, ZMQ_SNDMORE);
-	bunsan::zmq_helpers::send(args, push, stdin_file?ZMQ_SNDMORE:0);
+	push.send_more(callback_type);
+	push.send_more(callback_uri);
+	push.send_more(callback_args);
+	push.send_more(package);
+	push.send(args, stdin_file?ZMQ_SNDMORE:0);
 	if (stdin_file)
-		bunsan::zmq_helpers::send(stdin_file.get(), push, 0);
+		push.send(stdin_file.get());
 	if (cb)
 	{
 		DLOG(informing callback);
@@ -109,8 +109,10 @@ void bunsan::worker::pools::zeromq::queue_func()
 {
 	try
 	{
-		bunsan::zmq_helpers::socket pull(*context, ZMQ_PULL);
-		bunsan::zmq_helpers::socket rep(*context, ZMQ_REP);
+		zmq::socket pull(*context, ZMQ_PULL);
+		zmq::socket rep(*context, ZMQ_REP);
+		pull.set_linger(0);
+		rep.set_linger(0);
 		pull.bind(("tcp://*:"+boost::lexical_cast<std::string>(queue_port)).c_str());
 		rep.bind(("tcp://*:"+boost::lexical_cast<std::string>(worker_port)).c_str());
 		while (true)
@@ -128,12 +130,11 @@ void bunsan::worker::pools::zeromq::queue_func()
 			} while (!(rep_item[0].revents & ZMQ_POLLIN));
 			DLOG(attached to new worker);
 			int more;
-			size_t more_size = sizeof(more);
 			do
 			{
 				zmq::message_t message;
 				rep.recv(&message);
-				rep.getsockopt(ZMQ_RCVMORE, &more, &more_size);
+				rep.getsockopt(ZMQ_RCVMORE, &more);
 			} while (more);
 			DLOG(waiting for task);
 			zmq::pollitem_t pull_item[] =
@@ -152,7 +153,7 @@ void bunsan::worker::pools::zeromq::queue_func()
 				zmq::message_t message;
 				pull.recv(&message);
 				DLOG(receiving task...);
-				pull.getsockopt(ZMQ_RCVMORE, &more, &more_size);
+				pull.getsockopt(ZMQ_RCVMORE, &more);
 				rep.send(message, more?ZMQ_SNDMORE:0);
 			}
 			while (more);

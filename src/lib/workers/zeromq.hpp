@@ -5,7 +5,7 @@
 
 #include <zmq.hpp>
 
-#include "bunsan/zmq_helpers.hpp"
+#include "bunsan/zmq.hpp"
 
 #include "bunsan/dcs/hub.hpp"
 
@@ -24,7 +24,7 @@ namespace bunsan{namespace worker{namespace workers
 	private:
 		void do_task(const std::string &callback_type, const std::string &callback_uri, const std::vector<std::string> &callback_args, const std::string &package, const std::vector<std::string> &args, const boost::optional<std::vector<unsigned char>> &stdin_file);
 		zmq::context_t context;
-		std::unique_ptr<bunsan::zmq_helpers::socket> req;
+		std::unique_ptr<zmq::socket_t> req;
 		bunsan::dcs::hub_ptr hub;
 		bool have_task;
 		bool wait_task;
