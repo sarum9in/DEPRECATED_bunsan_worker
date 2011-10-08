@@ -1,5 +1,5 @@
-#ifndef WORKER_HPP
-#define WORKER_HPP
+#ifndef BUNSAN_WORKER_WORKER_HPP
+#define BUNSAN_WORKER_WORKER_HPP
 
 #include <memory>
 #include <functional>
@@ -53,5 +53,5 @@ namespace bunsan{namespace worker
 	typedef worker::worker_ptr worker_ptr;
 }}
 
-#endif //WORKER_HPP
+#endif //BUNSAN_WORKER_WORKER_HPP
 

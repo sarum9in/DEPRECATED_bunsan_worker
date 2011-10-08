@@ -1,5 +1,5 @@
-#ifndef POOL_INTERFACE_HPP
-#define POOL_INTERFACE_HPP
+#ifndef BUNSAN_WORKER_POOL_INTERFACE_HPP
+#define BUNSAN_WORKER_POOL_INTERFACE_HPP
 
 #include <string>
 #include <vector>
@@ -39,5 +39,5 @@ namespace bunsan{namespace worker
 	typedef pool_interface::pool_interface_ptr pool_interface_ptr;
 }}
 
-#endif //POOL_INTERFACE_HPP
+#endif //BUNSAN_WORKER_POOL_INTERFACE_HPP
 

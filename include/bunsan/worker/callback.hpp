@@ -1,5 +1,5 @@
-#ifndef CALLBACK_HPP
-#define CALLBACK_HPP
+#ifndef BUNSAN_WORKER_CALLBACK_HPP
+#define BUNSAN_WORKER_CALLBACK_HPP
 
 #include <map>
 #include <vector>
@@ -65,5 +65,5 @@ namespace bunsan{namespace worker
 	typedef callback::callback_ptr callback_ptr;
 }}
 
-#endif //CALLBACK_HPP
+#endif //BUNSAN_WORKER_CALLBACK_HPP
 
