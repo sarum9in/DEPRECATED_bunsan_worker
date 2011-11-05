@@ -32,9 +32,9 @@ namespace bunsan{namespace worker
 		};
 		enum class action
 		{
-			nop,			//< no operation, execution should continue
-			abort,			//< execution should be aborted
-			bad			//< used when callback proxy can't connect to the server or callback was not initialized
+			nop,			///< no operation, execution should continue
+			abort,			///< execution should be aborted
+			bad			///< used when callback proxy can't connect to the server or callback was not initialized
 		};
 		// virtual class
 		/*!
