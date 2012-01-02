@@ -13,7 +13,7 @@ include_directories(${Boost_INCLUDE_DIRS})
 message(AUTHOR_WARNING "We have to check pthread library on win* platform")
 message(AUTHOR_WARNING "We have to provide support for different compilers")
 
-add_definitions(-std=c++0x -pthread -g -D_GLIBCXX_USE_NANOSLEEP -Wall -Wextra -Wfatal-errors)
+add_definitions(-std=c++0x -pthread -g -D_GLIBCXX_USE_NANOSLEEP -Wall -Wextra)
 
 include_directories(include ${XMLRPC_INCLUDE_DIRS})
 
@@ -26,17 +26,21 @@ aux_source_directory(src/lib/callbacks callbacks_srcs)
 add_library(${PROJECT_NAME} SHARED ${lib_srcs} ${pools_srcs} ${workers_srcs} ${pool_interfaces_srcs} ${callbacks_srcs})
 target_link_libraries(${PROJECT_NAME} bunsan_common bunsan_dcs bunsan_pm ${Boost_LIBRARIES} ${XMLRPC_LIBRARIES} zmq)
 
-add_executable(worker src/worker_main.cpp)
-target_link_libraries(worker ${PROJECT_NAME})
+add_executable(${PROJECT_NAME}_worker src/worker_main.cpp)
+target_link_libraries(${PROJECT_NAME}_worker ${PROJECT_NAME})
 
-add_executable(pool src/pool_main.cpp)
-target_link_libraries(pool ${PROJECT_NAME})
+add_executable(${PROJECT_NAME}_pool src/pool_main.cpp)
+target_link_libraries(${PROJECT_NAME}_pool ${PROJECT_NAME})
 
 # install
 
 install(DIRECTORY include DESTINATION .)
-install(TARGETS ${PROJECT_NAME} worker pool
-                          RUNTIME DESTINATION bin
-                          LIBRARY DESTINATION lib)
+install(TARGETS
+	${PROJECT_NAME}
+	${PROJECT_NAME}_worker
+	${PROJECT_NAME}_pool
+	RUNTIME DESTINATION bin
+	LIBRARY DESTINATION lib
+	ARCHIVE DESTINATION lib)
 install(PROGRAMS src/worker.py DESTINATION bin)
 
