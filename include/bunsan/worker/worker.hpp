@@ -11,7 +11,7 @@
 #include <boost/noncopyable.hpp>
 
 #include "bunsan/simple_service.hpp"
-#include "bunsan/factory.hpp"
+#include "bunsan/factory_helper.hpp"
 
 namespace bunsan{namespace worker
 {
@@ -19,7 +19,7 @@ namespace bunsan{namespace worker
 	 * \brief class for executing tasks from pool
 	 */
 	class worker: private boost::noncopyable
-	{
+	BUNSAN_FACTORY_BEGIN(worker, const boost::property_tree::ptree &)
 	public:
 		// virtual class
 		virtual bool prepare()=0;
@@ -36,21 +36,7 @@ namespace bunsan{namespace worker
 				run_once();
 		}
 		virtual inline ~worker(){}
-		// factory
-		typedef std::shared_ptr<worker> worker_ptr;
-		static inline worker_ptr instance(const std::string &type, const boost::property_tree::ptree &config)
-		{
-			return bunsan::factory::instance(factories, type, config);
-		}
-	protected:
-		static inline bool register_new(const std::string &type, const std::function<worker_ptr(const boost::property_tree::ptree &)> f)
-		{
-			return bunsan::factory::register_new(factories, type, f);
-		}
-	private:
-		static std::map<std::string, std::function<worker_ptr(const boost::property_tree::ptree &)>> *factories;
-	};
-	typedef worker::worker_ptr worker_ptr;
+	BUNSAN_FACTORY_END(worker)
 }}
 
 #endif //BUNSAN_WORKER_WORKER_HPP

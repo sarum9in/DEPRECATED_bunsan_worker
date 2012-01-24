@@ -2,7 +2,7 @@
 
 #include "bunsan/util.hpp"
 
-std::map<std::string, std::function<bunsan::worker::callback_ptr(const std::string &, const std::vector<std::string> &)>> *bunsan::worker::callback::factories;
+BUNSAN_FACTORY_DEFINE(bunsan::worker::callback)
 
 bunsan::worker::callback::action bunsan::worker::callback::call(status status_type)
 {

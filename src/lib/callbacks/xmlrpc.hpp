@@ -1,5 +1,5 @@
-#ifndef XMLRPC_HPP
-#define XMLRPC_HPP
+#ifndef SRC_LIB_CALLBACKS_XMLRPC_HPP
+#define SRC_LIB_CALLBACKS_XMLRPC_HPP
 
 #include "bunsan/worker/callback.hpp"
 
@@ -18,5 +18,5 @@ namespace bunsan{namespace worker{namespace callbacks
 	};
 }}}
 
-#endif //XMLRPC_HPP
+#endif //SRC_LIB_CALLBACKS_XMLRPC_HPP
 

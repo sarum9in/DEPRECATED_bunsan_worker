@@ -1,5 +1,5 @@
-#ifndef COMPLEX_INTERFACE_HPP
-#define COMPLEX_INTERFACE_HPP
+#ifndef SRC_LIB_POOL_INTERFACES_COMPLEX_INTERFACE_HPP
+#define SRC_LIB_POOL_INTERFACES_COMPLEX_INTERFACE_HPP
 
 #include <boost/property_tree/ptree.hpp>
 
@@ -20,5 +20,5 @@ namespace bunsan{namespace worker{namespace pool_interfaces
 	};
 }}}
 
-#endif //COMPLEX_INTERFACE_HPP
+#endif //SRC_LIB_POOL_INTERFACES_COMPLEX_INTERFACE_HPP
 

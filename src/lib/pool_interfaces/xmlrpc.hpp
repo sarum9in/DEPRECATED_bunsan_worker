@@ -1,5 +1,5 @@
-#ifndef XMLRPC_HPP
-#define XMLRPC_HPP
+#ifndef SRC_LIB_POOL_INTERFACES_XMLRPC_HPP
+#define SRC_LIB_POOL_INTERFACES_XMLRPC_HPP
 
 #include "bunsan/xmlrpc_service.hpp"
 
@@ -25,5 +25,5 @@ namespace bunsan{namespace worker{namespace pool_interfaces
 	};
 }}}
 
-#endif //XMLRPC_HPP
+#endif //SRC_LIB_POOL_INTERFACES_XMLRPC_HPP
 

@@ -7,14 +7,13 @@
 #include <string>
 #include <memory>
 
-#include "bunsan/factory.hpp"
+#include "bunsan/factory_helper.hpp"
 
 namespace bunsan{namespace worker
 {
 	class callback
-	{
+	BUNSAN_FACTORY_BEGIN(callback, const std::string &, const std::vector<std::string> &)
 	public:
-		typedef std::shared_ptr<callback> callback_ptr;
 		enum class status
 		{
 			received,
@@ -49,20 +48,7 @@ namespace bunsan{namespace worker
 		static bunsan::worker::callback::action inform(callback_ptr cb, status st);
 		/// send status and message using callback
 		static bunsan::worker::callback::action inform(callback_ptr cb, status st, std::string msg);
-		// factory
-		static inline callback_ptr instance(const std::string &type, const std::string &uri, const std::vector<std::string> &args)
-		{
-			return bunsan::factory::instance(factories, type, std::cref(uri), std::cref(args));
-		}
-	protected:
-		static inline bool register_new(const std::string &type, const std::function<callback_ptr(const std::string &, const std::vector<std::string> &)> f)
-		{
-			return bunsan::factory::register_new(factories, type, f);
-		}
-	private:
-		static std::map<std::string, std::function<callback_ptr(const std::string &, const std::vector<std::string> &)>> *factories;
-	};
-	typedef callback::callback_ptr callback_ptr;
+	BUNSAN_FACTORY_END(callback)
 }}
 
 #endif //BUNSAN_WORKER_CALLBACK_HPP
