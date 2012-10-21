@@ -94,9 +94,9 @@ void bunsan::worker::workers::zeromq::do_task(const std::string &callback_type, 
 		}
 		DLOG(creating repository);
 		bunsan::pm::repository repo(repo_config);
-		bunsan::tempfile_ptr tmpdir = bunsan::tempfile::in_dir(worker_tempdir);
-		bunsan::reset_dir(tmpdir->path());
-		repo.extract(package, tmpdir->path());
+		bunsan::tempfile tmpdir = bunsan::tempfile::in_dir(worker_tempdir);
+		bunsan::reset_dir(tmpdir.path());
+		repo.extract(package, tmpdir.path());
 		if (bunsan::worker::callback::action::abort==bunsan::worker::callback::inform(cb, bunsan::worker::callback::status::preparing_execution))
 		{
 			bunsan::worker::callback::inform(cb, bunsan::worker::callback::status::aborted);
@@ -105,17 +105,17 @@ void bunsan::worker::workers::zeromq::do_task(const std::string &callback_type, 
 		DLOG(preparing async execute);
 		if (args.empty())
 			throw std::runtime_error("Nothing to execute!");
-		SLOG("exec in "<<tmpdir->path()<<" file "<<tmpdir->path()/args.at(0));
+		SLOG("exec in "<<tmpdir.path()<<" file "<<tmpdir.path()/args.at(0));
 		//DLOG(starting child wait loop);
 #warning bad implementation, workaround only, TODO
 		boost::process::context ctx;
-		ctx.work_directory = tmpdir->path().native();
+		ctx.work_directory = tmpdir.path().native();
 		if (stdin_file)
 			ctx.stdin_behavior = boost::process::capture_stream();
 		ctx.stdout_behavior = boost::process::inherit_stream();
 		ctx.stderr_behavior = boost::process::inherit_stream();
 		ctx.environment = boost::process::self::get_environment();
-		boost::process::child child = boost::process::launch((tmpdir->path()/args.at(0)).native(), args, ctx);
+		boost::process::child child = boost::process::launch((tmpdir.path()/args.at(0)).native(), args, ctx);
 		if (stdin_file)
 		{
 			boost::process::postream &out = child.get_stdin();
