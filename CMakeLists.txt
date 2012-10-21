@@ -2,6 +2,25 @@ project(bunsan_worker)
 
 cmake_minimum_required(VERSION 2.8)
 
+if(${CMAKE_COMPILER_IS_GNUCXX})
+	set(gxx_flags "-std=c++0x -Wall -Wextra")
+	if(${UNIX})
+		set(gxx_flags "-pthread ${gxx_flags}")
+	endif()
+	set(CMAKE_CXX_FLAGS_DEBUG "-g ${gxx_flags}")
+	set(CMAKE_CXX_FLAGS_RELEASE "-O2 ${gxx_flags}")
+endif()
+
+include(${CMAKE_SOURCE_DIR}/user-config.cmake OPTIONAL)
+
+if(NOT CMAKE_BUILD_TYPE)
+	set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build, options are: Debug Release" FORCE)
+endif()
+
+if(NOT DEFINED ENABLE_TESTS)
+	set(ENABLE_TESTS ON CACHE BOOL "Do you want to enable testing?" FORCE)
+endif()
+
 find_package(XMLRPC REQUIRED c++2 libwww-client abyss-server)
 
 # BOOST
@@ -9,11 +28,6 @@ set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
 find_package(Boost COMPONENTS system filesystem serialization iostreams unit_test_framework program_options REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
-
-message(AUTHOR_WARNING "We have to check pthread library on win* platform")
-message(AUTHOR_WARNING "We have to provide support for different compilers")
-
-add_definitions(-std=c++0x -pthread -g -D_GLIBCXX_USE_NANOSLEEP -Wall -Wextra)
 
 include_directories(include ${XMLRPC_INCLUDE_DIRS})
 
@@ -43,4 +57,9 @@ install(TARGETS
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib)
 install(PROGRAMS src/worker.py DESTINATION bin)
+
+if(${ENABLE_TESTS})
+	enable_testing()
+	#add_subdirectory(tests ${PROJECT_BINARY_DIR}/tests)
+endif()
 
