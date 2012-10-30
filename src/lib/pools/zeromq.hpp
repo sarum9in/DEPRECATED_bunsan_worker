@@ -37,7 +37,7 @@ namespace bunsan{namespace worker{namespace pools
 		const unsigned worker_port;
 		const unsigned queue_port;
 		const unsigned long stop_check_interval;
-		static bool factory_reg_hook;
+		static const bool factory_reg_hook;
 	};
 }}}
 

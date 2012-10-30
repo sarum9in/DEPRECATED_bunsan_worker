@@ -13,7 +13,7 @@
 
 // factory
 
-bool bunsan::worker::pool_interfaces::xmlrpc::factory_reg_hook = bunsan::worker::pool_interface::register_new("xmlrpc",
+const bool bunsan::worker::pool_interfaces::xmlrpc::factory_reg_hook = bunsan::worker::pool_interface::register_new("xmlrpc",
 	[](const boost::property_tree::ptree &config, bunsan::worker::pool_ptr pool__)
 	{
 		bunsan::worker::pool_interface_ptr tmp(new bunsan::worker::pool_interfaces::xmlrpc(config, pool__));

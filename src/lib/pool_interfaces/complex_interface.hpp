@@ -16,7 +16,7 @@ namespace bunsan{namespace worker{namespace pool_interfaces
 		virtual bunsan::worker::pool_ptr pool();
 	private:
 		bunsan::worker::pool_ptr pool_;
-		static bool factory_reg_hook;
+		static const bool factory_reg_hook;
 	};
 }}}
 

@@ -31,7 +31,7 @@ namespace bunsan{namespace worker{namespace workers
 		const std::string worker_tempdir;
 		const boost::property_tree::ptree repository_config;
 		const unsigned stop_check_interval;
-		static bool factory_reg_hook;
+		static const bool factory_reg_hook;
 	};
 }}}
 

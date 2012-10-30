@@ -15,7 +15,7 @@
 
 #include "bunsan/worker/callback.hpp"
 
-bool bunsan::worker::pools::zeromq::factory_reg_hook = bunsan::worker::pool::register_new("zeromq",
+const bool bunsan::worker::pools::zeromq::factory_reg_hook = bunsan::worker::pool::register_new("zeromq",
 	[](const boost::property_tree::ptree &config)
 	{
 		bunsan::worker::pool_ptr tmp(new bunsan::worker::pools::zeromq(config));

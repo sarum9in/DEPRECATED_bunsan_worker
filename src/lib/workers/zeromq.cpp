@@ -6,7 +6,7 @@
 
 #include "bunsan/pm/repository.hpp"
 
-bool bunsan::worker::workers::zeromq::factory_reg_hook = bunsan::worker::worker::register_new("zeromq",
+const bool bunsan::worker::workers::zeromq::factory_reg_hook = bunsan::worker::worker::register_new("zeromq",
 	[](const boost::property_tree::ptree &config)
 	{
 		bunsan::worker::worker_ptr tmp(new bunsan::worker::workers::zeromq(config));

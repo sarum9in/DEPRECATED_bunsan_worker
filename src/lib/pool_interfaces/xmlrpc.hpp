@@ -21,7 +21,7 @@ namespace bunsan{namespace worker{namespace pool_interfaces
 		bunsan::xmlrpc_service::registry_ptr registry;
 		unsigned port;
 		bunsan::worker::pool_ptr pool_;
-		static bool factory_reg_hook;
+		static const bool factory_reg_hook;
 	};
 }}}
 

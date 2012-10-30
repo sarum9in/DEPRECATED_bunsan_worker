@@ -1,6 +1,6 @@
 #include "complex_interface.hpp"
 
-bool bunsan::worker::pool_interfaces::complex_interface::factory_reg_hook = bunsan::worker::pool_interface::register_new("complex_interface",
+const bool bunsan::worker::pool_interfaces::complex_interface::factory_reg_hook = bunsan::worker::pool_interface::register_new("complex_interface",
 	[](const boost::property_tree::ptree &config, bunsan::worker::pool_ptr pool_)
 	{
 		bunsan::worker::pool_interface_ptr tmp(new bunsan::worker::pool_interfaces::complex_interface(config, pool_));

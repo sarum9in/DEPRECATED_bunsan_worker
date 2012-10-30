@@ -14,7 +14,7 @@ namespace bunsan{namespace worker{namespace callbacks
 		const std::string uri;
 		const std::string method;
 		const std::vector<std::string> args;
-		static bool factory_reg_hook;
+		static const bool factory_reg_hook;
 	};
 }}}
 
