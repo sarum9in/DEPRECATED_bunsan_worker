@@ -3,12 +3,15 @@
 
 import argparse, sys, subprocess, xmlrpc.client, signal, time
 
+
 class InterruptedError(Exception):
     pass
 
+
 class SingleProcess(object):
+
     def __init__(self, executable, args, stdout=None, stderr=None):
-        self._starter = lambda: subprocess.Popen([executable]+args, executable=executable, stdout=stdout, stderr=stderr)
+        self._starter = lambda: subprocess.Popen([executable] + args, executable=executable, stdout=stdout, stderr=stderr)
         try:
             self._inst = self._starter()
         except:
@@ -18,23 +21,31 @@ class SingleProcess(object):
             except:
                 pass
             raise
+
     def __enter__(self):
         return self
+
     def __exit__(self, type, value, traceback):
         self._inst.terminate()
         self._inst.wait()
+
     def restart_dead(self):
         if self._inst.poll()!=None:
             print("Restarting process", file=sys.stderr)
             self._inst = self._starter()
+
     def wait(self):
         return self._inst.wait()
+
     def poll(self):
         return self._inst.poll()
+
     def terminate(self):
         self._inst.terminate()
 
+
 class ProcessArray(object):
+
     def __init__(self, executable, args, count, stdout=None, stderr=None):
         self._starter = lambda: subprocess.Popen([executable]+args, executable=executable, stdout=stdout, stderr=stderr)
         self._inst = []
@@ -50,25 +61,31 @@ class ProcessArray(object):
                 except:
                     pass
             raise
+
     def __enter__(self):
         return self
+
     def __exit__(self, type, value, traceback):
         for i in self._inst:
             i.terminate()
             i.wait()
+
     def restart_dead(self):
         for i in range(len(self._inst)):
             if self._inst[i].poll()!=None:
                 print("Restarting process #{0}".format(i), file=sys.stderr)
                 self._inst[i] = self._starter()
+
     def wait_all(self):
         w = []
         for i in self._inst:
             w.append(i.wait())
         return w
+
     def terminate_all(self):
         for i in self._inst:
             i.terminate()
+
 
 def execute(pool, pool_args, worker, worker_args, worker_count, hub, machine, quiet, log, force=False):
     dcs = None
@@ -105,8 +122,10 @@ def execute(pool, pool_args, worker, worker_args, worker_count, hub, machine, qu
         if dcs!=None:
             dcs.remove_machine(machine)
 
+
 def exceptionRaiser(signum, frame):
     raise(InterruptedError(signum))
+
 
 if __name__=='__main__':
     signal.signal(signal.SIGTERM, exceptionRaiser)
@@ -123,4 +142,3 @@ if __name__=='__main__':
     parser.add_argument('-l', '--log', action='store', dest='log', help='directory were logs will be placed')
     args = parser.parse_args()
     execute(args.pool,  args.pool_args,  args.worker,  args.worker_args,  args.worker_count,  args.hub,  args.machine, args.quiet, args.log)
-
