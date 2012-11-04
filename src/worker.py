@@ -87,22 +87,30 @@ class ProcessArray(object):
             i.terminate()
 
 
+def get_args(opt):
+    if opt is None:
+        return []
+    else:
+        lst = opt.split(';')
+        if len(lst) > 0 and len(lst[0]) == 0:
+            lst = lst[1:]
+        return lst
+
+
 def execute(pool, pool_args, worker, worker_args, worker_count, hub, machine, quiet, log, force=False):
     dcs = None
-    if hub!=None:
+    if hub is not None:
         dcs = xmlrpc.client.ServerProxy(hub)
-    if pool_args==None:
-        pool_args=[]
-    if worker_args==None:
-        worker_args=[]
+    pool_args = get_args(pool_args)
+    worker_args = get_args(worker_args)
     try:
         if force:
             try:
-                if dcs!=None:
+                if dcs is not None:
                     dcs.remove_machine(machine)
             except Exception as e:
                 print("Expected error: {0}".format(e))
-        if dcs!=None:
+        if dcs is not None:
             dcs.add_machine(machine, "0")
         #n = open("/dev/null")
         #with SingleProcess(pool, pool_args, n, n) as p:
@@ -119,7 +127,7 @@ def execute(pool, pool_args, worker, worker_args, worker_count, hub, machine, qu
     except Exception as e:
         print("Unknown error: {0}".format(e))
     finally:
-        if dcs!=None:
+        if dcs is not None:
             dcs.remove_machine(machine)
 
 
@@ -131,14 +139,14 @@ if __name__=='__main__':
     signal.signal(signal.SIGTERM, exceptionRaiser)
     parser = argparse.ArgumentParser("Worker starter")
     parser.add_argument('-v', '--version', action='version', version='%(prog)s 0.0.1', help="version information")
-    parser.add_argument('-p',  '--pool',  action='store',  dest='pool',  help='pool binary', required=True)
-    parser.add_argument('-w',  '--worker',  action='store',  dest='worker',  help='worker binary', required=True)
-    parser.add_argument('--pool-args',  action='store',  dest='pool_args',  help='pool args')
-    parser.add_argument('--worker-args',  action='store',  dest='worker_args',  help='worker args')
-    parser.add_argument('-c', '--worker-count',  action='store',  dest='worker_count',  type=int,  help='worker count',  required=True)
-    parser.add_argument('-d', '--hub',  action='store',  dest='hub',  help='hub xmlrpc interface',  required=False)
-    parser.add_argument('-m', '--machine',  action='store',  dest='machine',  help='machine name',  required=False)
-    parser.add_argument('-q', '--quiet',  action='store_true',  dest='quiet',  help='will output nothing from pool and workers')
+    parser.add_argument('-p',  '--pool', action='store', dest='pool', help='pool binary', default='bunsan_worker_pool')
+    parser.add_argument('-w',  '--worker', action='store', dest='worker', help='worker binary', default='bunsan_worker_worker')
+    parser.add_argument('--pool-args', action='store', dest='pool_args', help='pool args ;-separated')
+    parser.add_argument('--worker-args', action='store', dest='worker_args', help='worker args ;-separated')
+    parser.add_argument('-c', '--worker-count', action='store', dest='worker_count', type=int, help='worker count', default=1)
+    parser.add_argument('-d', '--hub', action='store', dest='hub', help='hub xmlrpc interface', required=False)
+    parser.add_argument('-m', '--machine', action='store', dest='machine', help='machine name', required=False)
+    parser.add_argument('-q', '--quiet', action='store_true', dest='quiet', help='will output nothing from pool and workers')
     parser.add_argument('-l', '--log', action='store', dest='log', help='directory were logs will be placed')
     args = parser.parse_args()
-    execute(args.pool,  args.pool_args,  args.worker,  args.worker_args,  args.worker_count,  args.hub,  args.machine, args.quiet, args.log)
+    execute(args.pool, args.pool_args, args.worker, args.worker_args, args.worker_count, args.hub, args.machine, args.quiet, args.log)
