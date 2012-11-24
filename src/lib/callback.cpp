@@ -1,6 +1,6 @@
 #include "bunsan/worker/callback.hpp"
 
-#include "bunsan/util.hpp"
+#include "bunsan/logging/legacy.hpp"
 
 BUNSAN_FACTORY_DEFINE(bunsan::worker::callback)
 

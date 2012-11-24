@@ -2,6 +2,7 @@
 
 #include <boost/process.hpp>
 
+#include "bunsan/filesystem/operations.hpp"
 #include "bunsan/tempfile.hpp"
 
 #include "bunsan/pm/repository.hpp"
@@ -21,7 +22,7 @@ bunsan::worker::workers::zeromq::zeromq(const boost::property_tree::ptree &confi
     repository_config(config.get_child("repository")),
     worker_tempdir(config.get<std::string>("worker.tmp"))
 {
-    hub = bunsan::dcs::hub::instance(config.get<std::string>("hub.type"), config.get_child("hub.config"));
+    hub = dcs::hub::instance(config.get<std::string>("hub.type"), config.get_child("hub.config"));
     if (!hub)
         throw std::runtime_error("hub was not created");
     hub->start();
@@ -93,9 +94,9 @@ void bunsan::worker::workers::zeromq::do_task(const std::string &callback_type, 
             repo_config.put(uri_substitution.get(), repo_uri);
         }
         DLOG(creating repository);
-        bunsan::pm::repository repo(repo_config);
-        bunsan::tempfile tmpdir = bunsan::tempfile::in_dir(worker_tempdir);
-        bunsan::reset_dir(tmpdir.path());
+        pm::repository repo(repo_config);
+        tempfile tmpdir = tempfile::in_dir(worker_tempdir);
+        filesystem::reset_dir(tmpdir.path());
         repo.extract(package, tmpdir.path());
         if (bunsan::worker::callback::action::abort==bunsan::worker::callback::inform(cb, bunsan::worker::callback::status::preparing_execution))
         {

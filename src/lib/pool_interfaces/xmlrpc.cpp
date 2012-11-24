@@ -1,5 +1,7 @@
 #include "xmlrpc.hpp"
 
+#include "bunsan/logging/legacy.hpp"
+
 #include <string>
 #include <vector>
 #include <stdexcept>
@@ -8,8 +10,6 @@
 #include <xmlrpc-c/server_abyss.hpp>
 #include <xmlrpc-c/registry.hpp>
 #include <xmlrpc-c/girerr.hpp>
-
-#include "bunsan/util.hpp"
 
 // factory
 
