@@ -31,7 +31,7 @@ bunsan_add_shared_library(${PROJECT_NAME}
     src/lib/workers/zeromq.hpp
 
 )
-list(APPEND libraries ${PROJECT_NAME})
+bunsan_use(${PROJECT_NAME})
 
 bunsan_add_executable(${PROJECT_NAME}_worker src/worker_main.cpp)
 bunsan_add_executable(${PROJECT_NAME}_pool src/pool_main.cpp)
