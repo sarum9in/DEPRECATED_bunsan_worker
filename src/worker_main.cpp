@@ -59,9 +59,8 @@ int main(int argc, char **argv)
         //end parse
         //worker object
         DLOG(creating worker);
-        bunsan::worker::worker_ptr worker = bunsan::worker::worker::instance(config.get<std::string>("pool.type"), config.get_child("pool.config"));
-        if (!worker)
-            throw std::runtime_error("worker was not created");
+        const bunsan::worker::worker_ptr worker =
+            bunsan::worker::worker::instance(config.get<std::string>("pool.type"), config.get_child("pool.config"));
         DLOG(starting infinite serve);
         while (!interrupted)
         {

@@ -23,8 +23,6 @@ bunsan::worker::workers::zeromq::zeromq(const boost::property_tree::ptree &confi
     worker_tempdir(config.get<std::string>("worker.tmp"))
 {
     hub = dcs::hub::instance(config.get<std::string>("hub.type"), config.get_child("hub.config"));
-    if (!hub)
-        throw std::runtime_error("hub was not created");
     hub->start();
     req.reset(new zmq::socket(context, ZMQ_REQ));
     req->set_linger(0);

@@ -44,16 +44,14 @@ int main(int argc, char **argv)
         //end parse
         //pool object
         DLOG(creating pool);
-        bunsan::worker::pool_ptr pool = bunsan::worker::pool::instance(config.get<std::string>("pool.type"), config.get_child("pool.config"));
-        if (!pool)
-            throw std::runtime_error("pool was not created");
+        const bunsan::worker::pool_ptr pool =
+            bunsan::worker::pool::instance(config.get<std::string>("pool.type"), config.get_child("pool.config"));
         //DLOG(starting infinite serve);
         //DLOG(waiting: should not return);
         //pool->join();
         DLOG(creating pool interface);
-        bunsan::worker::pool_interface_ptr iface = bunsan::worker::pool_interface::instance(config.get<std::string>("interface.type"), config.get_child("interface.config"), pool);
-        if (!iface)
-            throw std::runtime_error("pool interface was not created");
+        bunsan::worker::pool_interface_ptr iface =
+            bunsan::worker::pool_interface::instance(config.get<std::string>("interface.type"), config.get_child("interface.config"), pool);
         //start interface in current thread
         DLOG(starting infinite serve);
         iface->start();
