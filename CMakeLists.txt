@@ -8,7 +8,7 @@ include(BunsanCommon)
 
 bunsan_use_xmlrpc(c++2 libwww-client abyss-server)
 bunsan_use_bunsan(common process network pm dcs)
-bunsan_use_boost(system filesystem serialization unit_test_framework program_options thread)
+bunsan_use_boost(system filesystem serialization program_options thread)
 
 bunsan_add_shared_library(${PROJECT_NAME}
     src/lib/callback.cpp
